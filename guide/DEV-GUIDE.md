@@ -337,6 +337,34 @@ Agent builds -> pushes to dev branch
   -> publish (npm, GitHub, skill registry)
 ```
 
+## PR Checklist (Private Repos)
+
+Every PR to a private repo must include product doc updates. This is not optional. Do it before merging, not after.
+
+### Required on every PR:
+
+1. **Dev update.** Write a dev update in `ai/dev-updates/` documenting what changed, key decisions, and what's next. Format: `YYYY-MM-DD--HH-MM--agent--description.md`.
+
+2. **Roadmap update.** Review `ai/product/plans-prds/roadmap.md`:
+   - Move completed items from **Upcoming** to **Done** (with `[x]` checkboxes)
+   - Add new items to **Upcoming** if the work revealed them
+   - Move abandoned items to **Deprecated** (never delete)
+
+3. **readme-first update.** Review `ai/product/readme-first.md`:
+   - Update **What's Built** and **What's Missing** sections
+   - Update any stats, counts, or version references
+   - Update the **Databases** or architecture sections if they changed
+
+4. **Plan archival.** If a plan in `plans-prds/current/` is complete, move it to `plans-prds/archive-complete/`.
+
+### Why this matters:
+
+Product docs drift fast. If roadmap updates only happen "when someone remembers," the roadmap becomes fiction. Tying updates to PRs means the docs stay current by default, not by heroics.
+
+### Release notes:
+
+Release notes are the public face of the project. They must be comprehensive. One-liners like "Release v0.6.0" are unacceptable. Every feature, every change, documented section by section. This applies to both private and public GitHub releases.
+
 ## Public/Private Repo Pattern
 
 ### The Rule
@@ -487,4 +515,33 @@ All job output goes to `/tmp/ldm-dev-tools/`:
 
 ## The _trash Convention
 
-**Never rm or delete files.** Always move to a `_trash/` folder. Applies everywhere: repos, agent data, extension installs. Makes recovery trivial without git archaeology.
+**Never delete files. Move them to `_trash/`.** Every directory that might have discarded files should have a `_trash/` subfolder.
+
+### Why:
+
+- Space is cheap. Recovery from `_trash/` is instant. Recovery from git history requires knowing the commit, the path, and the exact filename.
+- Files in `_trash/` are visible. You can browse them, grep them, copy them back. Deleted files are invisible unless you know they existed.
+- It prevents the "wait, who deleted that?" conversation.
+
+### Where it applies:
+
+- **Repos:** `ai/product/plans-prds/_trash/`, `ai/product/product-ideas/_trash/`, etc.
+- **Agent data:** workspace files, config backups, old extension versions
+- **Extension installs:** old plugin versions before upgrade
+
+### How:
+
+```bash
+# Instead of this:
+rm old-file.md
+
+# Do this:
+mkdir -p _trash
+mv old-file.md _trash/
+```
+
+Use `git mv` if the file is tracked. The underscore prefix sorts `_trash/` to the top of directory listings so it stays visible but out of the way.
+
+### When to clean up:
+
+Rarely. Maybe annually. If `_trash/` gets huge, archive it. But the default is: leave it. The cost of keeping files around is near zero. The cost of needing a file you deleted is real.

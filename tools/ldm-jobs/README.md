@@ -16,6 +16,13 @@ Audits all repos in the `wipcomputer` GitHub org. Enforces branch protection on 
 
 Audits all public repos in the `wipcomputer` GitHub org for missing `-private` counterparts. Uses `wip-repo-permissions-hook` CLI.
 
+### setup-shell.sh
+
+One-time shell environment setup for new machines. Configures:
+- **tmux mouse scrolling** ... `set -g mouse on` in `~/.tmux.conf`. Trackpad scrolling works inside tmux sessions.
+
+Idempotent. Safe to re-run.
+
 ## Usage
 
 These scripts can be run standalone (no `.app` required):
