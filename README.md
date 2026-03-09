@@ -14,6 +14,69 @@ Used internally to manage 100+ repos, 200+ releases, and daily license complianc
 
 ## Tools
 
+### wip-universal-installer
+
+The Universal Interface specification for agent-native software. Defines how every tool ships six interfaces: CLI, importable module, MCP Server, OpenClaw Plugin, Skill, Claude Code Hook. Includes a reference installer and a minimal example template.
+
+```bash
+# Detect what interfaces a repo supports
+wip-install /path/to/repo --dry-run
+
+# Install a tool from GitHub
+wip-install wipcomputer/wip-file-guard
+```
+
+**Source:** Pure JavaScript, no build step. [`tools/wip-universal-installer/detect.mjs`](tools/wip-universal-installer/detect.mjs) (detection), [`tools/wip-universal-installer/install.js`](tools/wip-universal-installer/install.js) (installer). Zero dependencies.
+
+[README](tools/wip-universal-installer/README.md) ... [SKILL.md](tools/wip-universal-installer/SKILL.md) ... [SPEC.md](tools/wip-universal-installer/SPEC.md) ... [Reference](tools/wip-universal-installer/REFERENCE.md)
+
+Also available as `UNIVERSAL-INTERFACE.md` at the repo root.
+
+### Dev Guide
+
+Best practices for AI-assisted development teams. Covers release process, repo structure, the `ai/` folder convention, branch protection, private/public repo patterns, post-merge branch renaming, repo directory structure, Cloudflare Workers deploy guards, and more.
+
+[Read the Dev Guide](DEV-GUIDE-GENERAL-PUBLIC.md)
+
+### LDM Dev Tools.app
+
+macOS automation wrapper. A native `.app` bundle that runs scheduled jobs (backup, branch protection audit, etc.) with Full Disk Access. One app to grant permissions to, one place to add new automation.
+
+**Source:** Job scripts are plain shell, committed at [`tools/ldm-jobs/`](tools/ldm-jobs/):
+
+| Script | What it does |
+|--------|-------------|
+| [`backup.sh`](tools/ldm-jobs/backup.sh) | Daily backup |
+| [`branch-protect.sh`](tools/ldm-jobs/branch-protect.sh) | Audit and enforce branch protection across all org repos |
+| [`visibility-audit.sh`](tools/ldm-jobs/visibility-audit.sh) | Audit public repos for missing -private counterparts |
+
+Scripts can be run standalone without the `.app`. The app provides a Full Disk Access wrapper for scripts that need it.
+
+```bash
+# Run standalone
+bash tools/ldm-jobs/backup.sh
+bash tools/ldm-jobs/branch-protect.sh
+bash tools/ldm-jobs/visibility-audit.sh
+
+# Or via the app wrapper
+open -W ~/Applications/LDMDevTools.app --args backup
+open -W ~/Applications/LDMDevTools.app --args branch-protect
+open -W ~/Applications/LDMDevTools.app --args visibility-audit
+```
+
+[README](tools/ldm-jobs/README.md)
+
+**Setup:** Drag `LDMDevTools.app` into System Settings > Privacy & Security > Full Disk Access. Then schedule via cron:
+
+```bash
+# Daily backup at midnight, branch protection audit at 1 AM, visibility audit at 2 AM
+0 0 * * * open -W ~/Applications/LDMDevTools.app --args backup >> /tmp/ldm-dev-tools/cron.log 2>&1
+0 1 * * * open -W ~/Applications/LDMDevTools.app --args branch-protect >> /tmp/ldm-dev-tools/cron.log 2>&1
+0 2 * * * open -W ~/Applications/LDMDevTools.app --args visibility-audit >> /tmp/ldm-dev-tools/cron.log 2>&1
+```
+
+Logs: `/tmp/ldm-dev-tools/`
+
 ### wip-release
 
 One-command release pipeline. Version bump, changelog, SKILL.md sync, npm publish, GitHub release. All in one shot.
@@ -65,16 +128,6 @@ wip-repo-permissions audit wipcomputer
 
 [README](tools/wip-repo-permissions-hook/README.md) ... [SKILL.md](tools/wip-repo-permissions-hook/SKILL.md)
 
-### deploy-public.sh
-
-Private-to-public repo sync. Copies everything except `ai/` from your working repo to the public mirror. Creates a PR, merges it. One script for all repos.
-
-**Source:** Plain shell. [`scripts/deploy-public.sh`](scripts/deploy-public.sh)
-
-```bash
-bash scripts/deploy-public.sh /path/to/private-repo wipcomputer/public-repo
-```
-
 ### post-merge-rename.sh
 
 Post-merge branch renaming. Scans for merged branches that haven't been renamed, appends `--merged-YYYY-MM-DD` to preserve history. Runs automatically as part of `wip-release`, or standalone.
@@ -86,45 +139,6 @@ bash scripts/post-merge-rename.sh              # scan + rename all
 bash scripts/post-merge-rename.sh --dry-run     # preview only
 bash scripts/post-merge-rename.sh <branch>      # rename specific branch
 ```
-
-### LDM Dev Tools.app
-
-macOS automation wrapper. A native `.app` bundle that runs scheduled jobs (backup, branch protection audit, etc.) with Full Disk Access. One app to grant permissions to, one place to add new automation.
-
-**Source:** Job scripts are plain shell, committed at [`tools/ldm-jobs/`](tools/ldm-jobs/):
-
-| Script | What it does |
-|--------|-------------|
-| [`backup.sh`](tools/ldm-jobs/backup.sh) | Daily backup |
-| [`branch-protect.sh`](tools/ldm-jobs/branch-protect.sh) | Audit and enforce branch protection across all org repos |
-| [`visibility-audit.sh`](tools/ldm-jobs/visibility-audit.sh) | Audit public repos for missing -private counterparts |
-
-Scripts can be run standalone without the `.app`. The app provides a Full Disk Access wrapper for scripts that need it.
-
-```bash
-# Run standalone
-bash tools/ldm-jobs/backup.sh
-bash tools/ldm-jobs/branch-protect.sh
-bash tools/ldm-jobs/visibility-audit.sh
-
-# Or via the app wrapper
-open -W ~/Applications/LDMDevTools.app --args backup
-open -W ~/Applications/LDMDevTools.app --args branch-protect
-open -W ~/Applications/LDMDevTools.app --args visibility-audit
-```
-
-[README](tools/ldm-jobs/README.md)
-
-**Setup:** Drag `LDMDevTools.app` into System Settings > Privacy & Security > Full Disk Access. Then schedule via cron:
-
-```bash
-# Daily backup at midnight, branch protection audit at 1 AM, visibility audit at 2 AM
-0 0 * * * open -W ~/Applications/LDMDevTools.app --args backup >> /tmp/ldm-dev-tools/cron.log 2>&1
-0 1 * * * open -W ~/Applications/LDMDevTools.app --args branch-protect >> /tmp/ldm-dev-tools/cron.log 2>&1
-0 2 * * * open -W ~/Applications/LDMDevTools.app --args visibility-audit >> /tmp/ldm-dev-tools/cron.log 2>&1
-```
-
-Logs: `/tmp/ldm-dev-tools/`
 
 ### wip-file-guard
 
@@ -141,23 +155,15 @@ wip-file-guard --list
 
 [README](tools/wip-file-guard/README.md) ... [SKILL.md](tools/wip-file-guard/SKILL.md) ... [Reference](tools/wip-file-guard/REFERENCE.md)
 
-### wip-universal-installer
+### deploy-public.sh
 
-The Universal Interface specification for agent-native software. Defines how every tool ships six interfaces: CLI, importable module, MCP Server, OpenClaw Plugin, Skill, Claude Code Hook. Includes a reference installer and a minimal example template.
+Private-to-public repo sync. Copies everything except `ai/` from your working repo to the public mirror. Creates a PR, merges it. One script for all repos.
+
+**Source:** Plain shell. [`scripts/deploy-public.sh`](scripts/deploy-public.sh)
 
 ```bash
-# Detect what interfaces a repo supports
-wip-install /path/to/repo --dry-run
-
-# Install a tool from GitHub
-wip-install wipcomputer/wip-file-guard
+bash scripts/deploy-public.sh /path/to/private-repo wipcomputer/public-repo
 ```
-
-**Source:** Pure JavaScript, no build step. [`tools/wip-universal-installer/detect.mjs`](tools/wip-universal-installer/detect.mjs) (detection), [`tools/wip-universal-installer/install.js`](tools/wip-universal-installer/install.js) (installer). Zero dependencies.
-
-[README](tools/wip-universal-installer/README.md) ... [SKILL.md](tools/wip-universal-installer/SKILL.md) ... [SPEC.md](tools/wip-universal-installer/SPEC.md) ... [Reference](tools/wip-universal-installer/REFERENCE.md)
-
-Also available as `UNIVERSAL-INTERFACE.md` at the repo root.
 
 ### wip-repos
 
@@ -190,14 +196,15 @@ All implementation source is committed in this repo. No closed binaries, no myst
 
 | Tool | Language | Source location | Build step? |
 |------|----------|----------------|-------------|
+| Dev Guide | Markdown | `DEV-GUIDE-GENERAL-PUBLIC.md` | None. |
+| LDM Dev Tools jobs | Shell | `tools/ldm-jobs/backup.sh`, `branch-protect.sh`, `visibility-audit.sh` | None. Runnable standalone or via `.app` wrapper. |
 | wip-release | JavaScript (ESM) | `tools/wip-release/cli.js`, `core.mjs` | None. What you see is what runs. |
 | wip-license-hook | TypeScript | `tools/wip-license-hook/src/**/*.ts` | `cd tools/wip-license-hook && npm install && npm run build` |
 | wip-repo-permissions-hook | JavaScript (ESM) | `tools/wip-repo-permissions-hook/core.mjs`, `cli.js`, `guard.mjs` | None. What you see is what runs. |
-| deploy-public.sh | Shell | `scripts/deploy-public.sh` | None. |
 | post-merge-rename.sh | Shell | `scripts/post-merge-rename.sh` | None. |
-| LDM Dev Tools jobs | Shell | `tools/ldm-jobs/backup.sh`, `branch-protect.sh`, `visibility-audit.sh` | None. Runnable standalone or via `.app` wrapper. |
 | wip-file-guard | JavaScript (ESM) | `tools/wip-file-guard/guard.mjs` | None. What you see is what runs. |
 | wip-universal-installer | JavaScript (ESM) | `tools/wip-universal-installer/detect.mjs`, `install.js` | None. What you see is what runs. |
+| deploy-public.sh | Shell | `scripts/deploy-public.sh` | None. |
 | wip-repos | JavaScript (ESM) | `tools/wip-repos/core.mjs`, `cli.mjs` | None. What you see is what runs. |
 
 Previously standalone tools (wip-release, wip-license-hook, wip-file-guard, wip-universal-installer) were merged here. The standalone repos redirect to this one.
@@ -225,12 +232,6 @@ No build step needed. Edit `cli.js` or `core.mjs` and test directly:
 cd tools/wip-release
 node cli.js --dry-run patch --notes="test"
 ```
-
-## Dev Guide
-
-Best practices for AI-assisted development teams. Covers release process, repo structure, the `ai/` folder convention, branch protection, private/public repo patterns, post-merge branch renaming, repo directory structure, Cloudflare Workers deploy guards, and more.
-
-[Read the Dev Guide](DEV-GUIDE-GENERAL-PUBLIC.md)
 
 ## Install
 
