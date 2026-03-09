@@ -65,9 +65,9 @@ CLI is the universal fallback. MCP and plugin wrappers are optimizations.
 
 **Examples:**
 ```
-cc-mini/fix-search              -> cc-mini/fix-search--merged-2026-03-08
-lesa-mini/weekly-tuning         -> lesa-mini/weekly-tuning--merged-2026-03-08
-cc-air/add-relay                -> cc-air/add-relay--merged-2026-03-08
+dev/fix-search                  -> dev/fix-search--merged-2026-03-08
+agent-a/weekly-tuning           -> agent-a/weekly-tuning--merged-2026-03-08
+team-b/add-relay                -> team-b/add-relay--merged-2026-03-08
 ```
 
 **After merging a PR:**
@@ -93,9 +93,9 @@ done
 
 For repos where you merge but don't release immediately, use the standalone script:
 ```bash
-bash guide/scripts/post-merge-rename.sh            # scan + rename all
-bash guide/scripts/post-merge-rename.sh --dry-run   # preview only
-bash guide/scripts/post-merge-rename.sh <branch>    # rename specific branch
+bash scripts/post-merge-rename.sh            # scan + rename all
+bash scripts/post-merge-rename.sh --dry-run   # preview only
+bash scripts/post-merge-rename.sh <branch>    # rename specific branch
 ```
 - Use scoped npm tokens for publishing, not personal credentials.
 
@@ -125,7 +125,7 @@ The `--notes` flag provides the summary paragraph at the top. The tool builds ev
 
 Every release must also have:
 
-1. **All three contributors.** Parker, Lesa, and Claude Code must all have authored at least one commit in the repo. GitHub tracks contributors by commit author, not co-author trailers. If a contributor is missing, make a real commit with `--author`.
+1. **All contributors represented.** Every team member (human and AI) must have authored at least one commit in the repo. GitHub tracks contributors by commit author, not co-author trailers. If a contributor is missing, make a real commit with `--author`.
 2. **Release on both repos.** The private repo gets the release from wip-release. The public repo gets a matching release from deploy-public.sh. Both must show the release in their GitHub Releases tab.
 3. **npm package published.** Available via `npm install <package-name>@<version>`. Verify after publishing.
 4. **CHANGELOG.md updated.** wip-release handles this, but verify it's accurate and complete.
@@ -153,14 +153,6 @@ Some repos deploy to Cloudflare Workers via `wrangler deploy`. Same rules as git
 ### The Rule
 
 **Commit first. Deploy second. Always.** The source that produced the deployed worker must exist in git before it goes to Cloudflare. If something breaks, we need to know exactly what's running.
-
-### Repos That Deploy to Cloudflare
-
-| Repo | Worker | Config |
-|------|--------|--------|
-| memory-crystal-private | memory-crystal-demo | wrangler-demo.toml |
-| memory-crystal-private | memory-crystal-cloud | wrangler-mcp.toml |
-| wip-agent-pay | wip-agent-pay | worker/wrangler.toml |
 
 ### Deploy Workflow
 
@@ -235,7 +227,7 @@ Branch names use the **harness name** (agent + machine) as the prefix. Every har
 <harness>/<feature>
 ```
 
-Examples: `cc-mini/fix-search`, `cc-air/add-relay`, `lesa-mini/weekly-tuning`
+Examples: `dev/fix-search`, `agent-a/add-relay`, `team-b/weekly-tuning`
 
 ### Multi-Agent Clone Workflow
 
@@ -243,24 +235,25 @@ Examples: `cc-mini/fix-search`, `cc-air/add-relay`, `lesa-mini/weekly-tuning`
 
 ```
 staff/
-  Parker/
-    Claude Code - Mini/repos/
-      memory-crystal-private/     <- cc-mini works here, cc-mini/ branches
-    Claude Code - MBA/repos/
-      memory-crystal-private/     <- cc-air works here, cc-air/ branches
-  Lēsa/
+  Agent-A/
     repos/
-      memory-crystal-private/     <- lesa-mini works here, lesa-mini/ branches
+      my-project-private/         <- agent-a works here, agent-a/ branches
+  Agent-B/
+    repos/
+      my-project-private/         <- agent-b works here, agent-b/ branches
+  Human/
+    repos/
+      my-project-private/         <- human works here, dev/ branches
 ```
 
 **Rules:**
-- Never work in another agent's folder. If Lesa originated a repo, CC still clones it to their own folder.
-- Each harness uses their own branch prefix (`cc-mini/`, `cc-air/`, `lesa-mini/`).
+- Never work in another agent's folder. If Agent-A originated a repo, Agent-B still clones it to their own folder.
+- Each harness uses their own branch prefix.
 - PRs merge to `main` on GitHub. That's the shared integration point.
 - If something needs to change in another agent's working tree, open a PR or ask them.
 
 **When a new repo is created:**
-1. Whoever creates it pushes to GitHub (wipcomputer org)
+1. Whoever creates it pushes to GitHub
 2. Every other agent clones it to their own repos folder
 3. Each agent creates their dev branch with their prefix
 
@@ -306,9 +299,9 @@ ai/
   plan/              ... architecture plans, roadmaps, convention notes
   dev-updates/       ... what was built, session logs
   todos/
-    Parker-todo.md   ... Parker's action items
-    CC-Mini-todo.md  ... CC-Mini's action items
-    OC-Lesa-Mini-todo.md  ... OC-Lesa-Mini's action items
+    Human-todo.md    ... human lead's action items
+    Agent-A-todo.md  ... Agent A's action items
+    Agent-B-todo.md  ... Agent B's action items
   notes/             ... research, raw conversation logs, references
 ```
 
@@ -348,15 +341,15 @@ One file per person/agent. Named `{Name}-todo.md`. Lives in `ai/todos/`.
 - **Update the date** at the top of the file every time you edit it.
 - Each person/agent has exactly one file. Don't create per-date or per-feature todo files.
 
-**Our todo files:**
+**Example todo files:**
 
 | File | Who |
 |------|-----|
-| `Parker-todo.md` | Parker (human tasks, setup, deploy, review) |
-| `CC-Mini-todo.md` | Claude Code on Mac Mini (code, docs, builds) |
-| `OC-Lesa-Mini-todo.md` | OpenClaw Lesa on Mac Mini (agent tasks, testing) |
+| `Human-todo.md` | Human lead (setup, deploy, review) |
+| `Agent-A-todo.md` | Agent A (code, docs, builds) |
+| `Agent-B-todo.md` | Agent B (testing, integration) |
 
-Add more as harnesses are added (e.g., `CC-Air-todo.md` for the MacBook Air).
+Add more as agents or team members are added.
 
 ## Branch Protection
 
@@ -419,15 +412,13 @@ All repos are organized into this directory structure. Every agent on every mach
 
 ```
 repos/
-├── ldm-os/                      ← NOT a repo. Organizes all LDM OS repos.
+├── <project>/                   ← NOT a repo. Organizes project repos by category.
 │   ├── apis/                    ← API integrations
 │   ├── apps/                    ← user-facing apps
 │   ├── components/              ← core components
-│   ├── identity/                ← identity tools
 │   ├── operations/              ← dev tools, release pipeline
-│   └── utilities/               ← healthcheck, file-guard, 1password, etc.
-├── wip-inc/                     ← Repo. Company docs (always private).
-├── wip-website-private/         ← Repo. Website working repo (wip.computer).
+│   └── utilities/               ← support tools
+├── <company>/                   ← Repo. Company docs (always private).
 ├── third-party-repos/           ← NOT a repo. Forks and external repos.
 ├── _sort/                       ← NOT a repo. Repos not yet categorized.
 ├── _sunsetted/                  ← NOT a repo. Deprecated repos.
@@ -441,7 +432,7 @@ repos/
 - **`_trash/`** ... deleted items (never truly delete, move here)
 - **Underscore prefix** (`_`) keeps staging folders sorted to the top, visually separated from real repos
 
-These conventions apply at every level: top-level `repos/`, inside `ldm-os/` categories, and nested within staging folders.
+These conventions apply at every level: top-level `repos/`, inside project categories, and nested within staging folders.
 
 ### Creating a New Repo
 
@@ -449,14 +440,14 @@ These conventions apply at every level: top-level `repos/`, inside `ldm-os/` cat
 
 ```bash
 # 1. Pick the category
-#    apis, apps, components, identity, operations, utilities
+#    apis, apps, components, operations, utilities
 
 # 2. Create on GitHub as private with -private suffix
-gh repo create wipcomputer/<name>-private --private
+gh repo create <org>/<name>-private --private
 
 # 3. Clone into the correct category folder
-cd repos/ldm-os/<category>/
-git clone git@github.com:wipcomputer/<name>-private.git
+cd repos/<project>/<category>/
+git clone git@github.com:<org>/<name>-private.git
 
 # 4. Create the ai/ folder structure
 cd <name>-private
@@ -580,21 +571,21 @@ macOS restricts cron and shell scripts from accessing protected files (Full Disk
 
 ### How it works
 
-`LDMDevTools.app` is a minimal macOS application that:
+A minimal macOS `.app` bundle that:
 1. Contains a compiled Mach-O binary (so macOS recognizes it as a real app)
 2. The binary calls a shell script that dispatches to individual job scripts
-3. Jobs live in `LDMDevTools.app/Contents/Resources/jobs/*.sh`
+3. Jobs live in `YourApp.app/Contents/Resources/jobs/*.sh`
 4. Adding a new job = dropping a new `.sh` file in that folder
 
 ### Structure
 
 ```
-~/Applications/LDMDevTools.app/
+~/Applications/YourDevTools.app/
   Contents/
     Info.plist                    ... app metadata (bundle ID, version)
     MacOS/
-      ldm-dev-tools               ... compiled binary (Mach-O, calls ldm-dev-tools-run)
-      ldm-dev-tools-run           ... shell dispatcher (routes to jobs)
+      your-dev-tools              ... compiled binary (Mach-O, calls dispatcher)
+      your-dev-tools-run          ... shell dispatcher (routes to jobs)
     Resources/
       jobs/
         backup.sh                 ... daily backup of databases + state
@@ -605,12 +596,12 @@ macOS restricts cron and shell scripts from accessing protected files (Full Disk
 ### Setup
 
 1. Build the app (or copy from dev-tools repo)
-2. Drag `LDMDevTools.app` into **System Settings > Privacy & Security > Full Disk Access**
+2. Drag the `.app` into **System Settings > Privacy & Security > Full Disk Access**
 3. Schedule via cron:
 
 ```bash
-0 0 * * * open -W ~/Applications/LDMDevTools.app --args backup >> /tmp/ldm-dev-tools/cron.log 2>&1
-0 1 * * * open -W ~/Applications/LDMDevTools.app --args branch-protect >> /tmp/ldm-dev-tools/cron.log 2>&1
+0 0 * * * open -W ~/Applications/YourDevTools.app --args backup >> /tmp/dev-tools/cron.log 2>&1
+0 1 * * * open -W ~/Applications/YourDevTools.app --args branch-protect >> /tmp/dev-tools/cron.log 2>&1
 ```
 
 ### Why not LaunchAgents?
@@ -622,19 +613,19 @@ LaunchAgents have been unreliable across macOS updates. FDA grants to `/bin/bash
 Create a file in `Contents/Resources/jobs/`:
 
 ```bash
-# ~/Applications/LDMDevTools.app/Contents/Resources/jobs/my-job.sh
+# ~/Applications/YourDevTools.app/Contents/Resources/jobs/my-job.sh
 #!/bin/bash
 echo "=== My job: $(date) ==="
 # ... your automation here
 echo "=== Done ==="
 ```
 
-Then: `open -W ~/Applications/LDMDevTools.app --args my-job`
+Then: `open -W ~/Applications/YourDevTools.app --args my-job`
 
 ### Logs
 
-All job output goes to `/tmp/ldm-dev-tools/`:
-- `ldm-dev-tools.log` ... dispatcher log (which jobs ran, exit codes)
+All job output goes to `/tmp/dev-tools/`:
+- `dev-tools.log` ... dispatcher log (which jobs ran, exit codes)
 - `<job-name>.log` ... individual job output
 - `<job-name>-last-exit` ... last exit code (for monitoring)
 - `<job-name>-last-run` ... last run timestamp

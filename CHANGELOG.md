@@ -1,5 +1,42 @@
 # Changelog
 
+## 1.2.0 (2026-03-09)
+
+Major repo reorganization and Dev Guide expansion.
+
+### Repo structure
+- Separated public Dev Guide from private conventions
+- `guide/DEV-GUIDE.md` → `DEV-GUIDE-GENERAL-PUBLIC.md` (genericized, root level, goes public)
+- `ai/DEV-GUIDE-private.md` → `ai/DEV-GUIDE-FOR-WIP-ONLY-PRIVATE.md` (WIP-specific conventions)
+- `guide/scripts/` → `scripts/` (moved to root level)
+- Old `guide/` folder trashed
+
+### New Dev Guide sections
+- Post-merge branch rename convention (never delete branches, rename with `--merged-YYYY-MM-DD`)
+- Repo directory structure (standard layout, staging folder conventions, create as `-private` from day one)
+- The manifest (`repos-manifest.json` as source of truth for repo locations)
+- Privatize Before You Work rule
+- Cloudflare Workers deploy guard (commit before deploy, guarded npm scripts)
+- PR checklist for private repos (dev update, roadmap, readme-first, plan archival)
+- Expanded `_trash` convention
+- Warning: never use `--no-publish` before `deploy-public.sh`
+
+### New script
+- `scripts/post-merge-rename.sh`: scans for merged branches missing `--merged-YYYY-MM-DD` suffix and renames them. Runs automatically as wip-release step 10, or standalone.
+
+### README and SKILL.md
+- Added post-merge-rename.sh to tools section and source table
+- Fixed all paths for reorg
+- Updated Dev Guide description with new sections
+
+## 1.1.3 (2026-03-01)
+
+- Fix npx package name in pre-pull.sh and pre-push.sh (@wipcomputer/license-hook → @wipcomputer/wip-license-hook)
+- Fix wip-release test script (cli.mjs → cli.js)
+- Clean up wip-release CHANGELOG blank lines
+- Add visibility-audit.sh to DEV-GUIDE .app structure diagram
+- Remove duplicate skill/SKILL.md subfolder
+
 ## 1.1.2 (2026-03-01)
 
 - SKILL.md: sync version to 1.1.2

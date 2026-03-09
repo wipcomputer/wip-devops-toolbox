@@ -69,10 +69,22 @@ wip-repo-permissions audit wipcomputer
 
 Private-to-public repo sync. Copies everything except `ai/` from your working repo to the public mirror. Creates a PR, merges it. One script for all repos.
 
-**Source:** Plain shell. [`guide/scripts/deploy-public.sh`](guide/scripts/deploy-public.sh)
+**Source:** Plain shell. [`scripts/deploy-public.sh`](scripts/deploy-public.sh)
 
 ```bash
-bash guide/scripts/deploy-public.sh /path/to/private-repo wipcomputer/public-repo
+bash scripts/deploy-public.sh /path/to/private-repo wipcomputer/public-repo
+```
+
+### post-merge-rename.sh
+
+Post-merge branch renaming. Scans for merged branches that haven't been renamed, appends `--merged-YYYY-MM-DD` to preserve history. Runs automatically as part of `wip-release`, or standalone.
+
+**Source:** Plain shell. [`scripts/post-merge-rename.sh`](scripts/post-merge-rename.sh)
+
+```bash
+bash scripts/post-merge-rename.sh              # scan + rename all
+bash scripts/post-merge-rename.sh --dry-run     # preview only
+bash scripts/post-merge-rename.sh <branch>      # rename specific branch
 ```
 
 ### LDM Dev Tools.app
@@ -123,7 +135,8 @@ All implementation source is committed in this repo. No closed binaries, no myst
 | wip-release | JavaScript (ESM) | `tools/wip-release/cli.js`, `core.mjs` | None. What you see is what runs. |
 | wip-license-hook | TypeScript | `tools/wip-license-hook/src/**/*.ts` | `cd tools/wip-license-hook && npm install && npm run build` |
 | wip-repo-permissions-hook | JavaScript (ESM) | `tools/wip-repo-permissions-hook/core.mjs`, `cli.js`, `guard.mjs` | None. What you see is what runs. |
-| deploy-public.sh | Shell | `guide/scripts/deploy-public.sh` | None. |
+| deploy-public.sh | Shell | `scripts/deploy-public.sh` | None. |
+| post-merge-rename.sh | Shell | `scripts/post-merge-rename.sh` | None. |
 | LDM Dev Tools jobs | Shell | `tools/ldm-jobs/backup.sh`, `branch-protect.sh`, `visibility-audit.sh` | None. Runnable standalone or via `.app` wrapper. |
 
 Both tools were previously in standalone repos, now merged here. The standalone repos redirect to this one.
@@ -154,9 +167,9 @@ node cli.js --dry-run patch --notes="test"
 
 ## Dev Guide
 
-Best practices for AI-assisted development teams. Covers release process, repo structure, the `ai/` folder convention, branch protection, private/public repo patterns, and more.
+Best practices for AI-assisted development teams. Covers release process, repo structure, the `ai/` folder convention, branch protection, private/public repo patterns, post-merge branch renaming, repo directory structure, Cloudflare Workers deploy guards, and more.
 
-[Read the Dev Guide](guide/DEV-GUIDE.md)
+[Read the Dev Guide](DEV-GUIDE-GENERAL-PUBLIC.md)
 
 ## Install
 

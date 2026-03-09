@@ -1,6 +1,6 @@
 ---
 name: WIP Dev Tools
-version: 1.1.2
+version: 1.2.0
 description: Dev toolkit for AI-assisted software development. Release pipeline, license compliance, repo visibility guard, and best practices.
 category: dev-tools
 capabilities:
@@ -46,12 +46,17 @@ Docs: [README](tools/wip-repo-permissions-hook/README.md)
 ### deploy-public.sh
 Private-to-public repo sync. Excludes `ai/` folder. Creates PR and merges.
 
-Usage: `bash guide/scripts/deploy-public.sh <private-repo-path> <public-github-repo>`
+Usage: `bash scripts/deploy-public.sh <private-repo-path> <public-github-repo>`
+
+### post-merge-rename.sh
+Post-merge branch renaming. Scans for merged branches, appends `--merged-YYYY-MM-DD`.
+
+Usage: `bash scripts/post-merge-rename.sh` (scan + rename all) or `--dry-run` (preview)
 
 ### Dev Guide
-Best practices for AI development teams: release process, repo structure, `ai/` folder convention, branch protection, private/public patterns.
+Best practices for AI development teams: release process, repo structure, `ai/` folder convention, branch protection, private/public patterns, post-merge branch renaming, repo directory structure, Cloudflare deploy guards.
 
-Read: [DEV-GUIDE.md](guide/DEV-GUIDE.md)
+Read: [DEV-GUIDE.md](DEV-GUIDE-GENERAL-PUBLIC.md)
 
 ## Setup
 
@@ -62,5 +67,5 @@ npm install -g @wipcomputer/wip-release @wipcomputer/wip-license-hook
 
 For the deploy script, clone this repo and run it directly:
 ```bash
-bash guide/scripts/deploy-public.sh /path/to/private-repo org/public-repo
+bash scripts/deploy-public.sh /path/to/private-repo org/public-repo
 ```

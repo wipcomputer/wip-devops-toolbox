@@ -451,6 +451,51 @@ export async function release({ repoPath, level, notes, dryRun, noPublish }) {
     }
   }
 
+  // 10. Post-merge branch cleanup: rename merged branches with --merged-YYYY-MM-DD
+  try {
+    const merged = execSync(
+      'git branch --merged main', { cwd: repoPath, encoding: 'utf8' }
+    ).split('\n')
+      .map(b => b.trim())
+      .filter(b => b && b !== 'main' && b !== 'master' && !b.startsWith('*') && !b.includes('--merged-'));
+
+    if (merged.length > 0) {
+      console.log(`  Scanning ${merged.length} merged branch(es) for rename...`);
+      for (const branch of merged) {
+        const current = execSync('git branch --show-current', { cwd: repoPath, encoding: 'utf8' }).trim();
+        if (branch === current) continue;
+
+        let mergeDate;
+        try {
+          const mergeBase = execSync(`git merge-base main ${branch}`, { cwd: repoPath, encoding: 'utf8' }).trim();
+          mergeDate = execSync(
+            `git log main --format="%ai" --ancestry-path ${mergeBase}..main`,
+            { cwd: repoPath, encoding: 'utf8' }
+          ).trim().split('\n').pop().split(' ')[0];
+        } catch {}
+        if (!mergeDate) {
+          try {
+            mergeDate = execSync(`git log ${branch} -1 --format="%ai"`, { cwd: repoPath, encoding: 'utf8' }).trim().split(' ')[0];
+          } catch {}
+        }
+        if (!mergeDate) continue;
+
+        const newName = `${branch}--merged-${mergeDate}`;
+        try {
+          execSync(`git branch -m "${branch}" "${newName}"`, { cwd: repoPath, stdio: 'pipe' });
+          execSync(`git push origin "${newName}"`, { cwd: repoPath, stdio: 'pipe' });
+          execSync(`git push origin --delete "${branch}"`, { cwd: repoPath, stdio: 'pipe' });
+          console.log(`  ✓ Renamed: ${branch} -> ${newName}`);
+        } catch (e) {
+          console.log(`  ! Could not rename ${branch}: ${e.message}`);
+        }
+      }
+    }
+  } catch (e) {
+    // Non-fatal: branch cleanup is a convenience, not a blocker
+    console.log(`  ! Branch cleanup skipped: ${e.message}`);
+  }
+
   console.log('');
   console.log(`  Done. ${repoName} v${newVersion} released.`);
   console.log('');
