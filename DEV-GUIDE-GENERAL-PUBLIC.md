@@ -132,6 +132,25 @@ Every release must also have:
 
 **After every release, verify all of these.** Check the public repo's GitHub page. Does it show the release? Does it show all three contributors? Are the release notes complete? Is the npm package available? If any of these are missing, fix it before moving on.
 
+### Release Order (Critical)
+
+The release flow must happen in this exact order:
+
+1. **Merge PR to main** on the private repo
+2. **`wip-release`** on the private repo (bumps version, creates tag, creates GitHub release with full notes, publishes npm)
+3. **`deploy-public`** to sync to the public repo (pulls release notes from private repo's GitHub release)
+
+If you skip step 2 or do it manually (e.g. `git tag` + `git push` without creating a GitHub release), `deploy-public` will create the public release with empty notes. The script pulls notes from the private repo's GitHub release. No release on private = no notes on public.
+
+**If you must release manually** (no root package.json, toolbox repos, etc.):
+1. Update CHANGELOG.md and SKILL.md version
+2. Commit, PR, merge
+3. `git tag vX.Y.Z && git push origin vX.Y.Z`
+4. `gh release create vX.Y.Z --title "vX.Y.Z" --notes "..."` on the PRIVATE repo first
+5. THEN run `deploy-public`
+
+The GitHub release on the private repo must exist before deploy-public runs. This is not optional.
+
 ### Pre-Publish Checklist
 
 Before any repo goes public:
