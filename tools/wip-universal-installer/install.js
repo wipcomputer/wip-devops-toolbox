@@ -2,14 +2,22 @@
 // wip-universal-installer/install.js
 // Reference installer for agent-native software.
 // Reads a repo, detects available interfaces, installs them all.
+// Deploys to LDM OS (~/.ldm/extensions/) and OpenClaw (~/.openclaw/extensions/).
+// Registers MCP servers at user scope via `claude mcp add --scope user`.
+// Maintains a registry at ~/.ldm/extensions/registry.json.
 
 import { execSync } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync, cpSync, mkdirSync } from 'node:fs';
 import { join, basename, resolve } from 'node:path';
-import { detectInterfaces, describeInterfaces, detectInterfacesJSON } from './detect.mjs';
+import { detectInterfaces, describeInterfaces, detectInterfacesJSON, detectToolbox } from './detect.mjs';
 
-const OPENCLAW_DIR = join(process.env.HOME, '.openclaw');
-const EXTENSIONS_DIR = join(OPENCLAW_DIR, 'extensions');
+const HOME = process.env.HOME || '';
+const LDM_ROOT = join(HOME, '.ldm');
+const LDM_EXTENSIONS = join(LDM_ROOT, 'extensions');
+const OC_ROOT = join(HOME, '.openclaw');
+const OC_EXTENSIONS = join(OC_ROOT, 'extensions');
+const OC_MCP = join(OC_ROOT, '.mcp.json');
+const REGISTRY_PATH = join(LDM_EXTENSIONS, 'registry.json');
 
 // Flags
 const args = process.argv.slice(2);
@@ -29,6 +37,33 @@ function readJSON(path) {
     return null;
   }
 }
+
+function writeJSON(path, data) {
+  mkdirSync(join(path, '..'), { recursive: true });
+  writeFileSync(path, JSON.stringify(data, null, 2) + '\n');
+}
+
+// ── Registry ──
+
+function loadRegistry() {
+  return readJSON(REGISTRY_PATH) || { _format: 'v1', extensions: {} };
+}
+
+function saveRegistry(registry) {
+  writeJSON(REGISTRY_PATH, registry);
+}
+
+function updateRegistry(name, info) {
+  const registry = loadRegistry();
+  registry.extensions[name] = {
+    ...registry.extensions[name],
+    ...info,
+    updatedAt: new Date().toISOString(),
+  };
+  saveRegistry(registry);
+}
+
+// ── Install functions ──
 
 function installCLI(repoPath, door) {
   if (DRY_RUN) {
@@ -52,42 +87,125 @@ function installCLI(repoPath, door) {
   }
 }
 
-function installOpenClaw(repoPath, door) {
-  const name = door.config?.name || basename(repoPath);
-  const dest = join(EXTENSIONS_DIR, name);
-
+function deployExtension(repoPath, name) {
+  // Deploy to LDM OS (primary)
+  const ldmDest = join(LDM_EXTENSIONS, name);
   if (DRY_RUN) {
-    ok(`OpenClaw: would copy to ${dest} (dry run)`);
-    return true;
-  }
-
-  if (existsSync(dest)) {
-    skip(`OpenClaw: ${name} already installed at ${dest}`);
+    ok(`LDM: would deploy to ${ldmDest} (dry run)`);
+    ok(`OpenClaw: would deploy to ${join(OC_EXTENSIONS, name)} (dry run)`);
     return true;
   }
 
   try {
-    mkdirSync(dest, { recursive: true });
-    cpSync(repoPath, dest, { recursive: true, filter: (src) => !src.includes('.git') });
-    ok(`OpenClaw: copied to ${dest}`);
+    // LDM path (remove existing to get clean copy)
+    if (existsSync(ldmDest)) {
+      execSync(`rm -rf "${ldmDest}"`, { stdio: 'pipe' });
+    }
+    mkdirSync(ldmDest, { recursive: true });
+    cpSync(repoPath, ldmDest, {
+      recursive: true,
+      filter: (src) => !src.includes('.git') && !src.includes('node_modules') && !src.includes('ai/')
+    });
+    ok(`LDM: deployed to ${ldmDest}`);
 
-    if (existsSync(join(dest, 'package.json'))) {
+    // Install deps in LDM
+    if (existsSync(join(ldmDest, 'package.json'))) {
       try {
-        execSync('npm install --omit=dev', { cwd: dest, stdio: 'pipe' });
-        ok(`OpenClaw: dependencies installed`);
+        execSync('npm install --omit=dev', { cwd: ldmDest, stdio: 'pipe' });
+        ok(`LDM: dependencies installed`);
       } catch {
-        skip(`OpenClaw: no deps needed`);
+        skip(`LDM: no deps needed`);
       }
     }
+
+    // OpenClaw path (copy from LDM to keep them identical)
+    const ocDest = join(OC_EXTENSIONS, name);
+    // Remove existing OC copy to avoid src/dest collision
+    if (existsSync(ocDest)) {
+      execSync(`rm -rf "${ocDest}"`, { stdio: 'pipe' });
+    }
+    mkdirSync(ocDest, { recursive: true });
+    cpSync(ldmDest, ocDest, { recursive: true });
+    ok(`OpenClaw: deployed to ${ocDest}`);
+
     return true;
   } catch (e) {
-    fail(`OpenClaw: copy failed. ${e.message}`);
+    fail(`Deploy failed: ${e.message}`);
     return false;
   }
 }
 
+function installOpenClaw(repoPath, door) {
+  const name = door.config?.name || basename(repoPath);
+  return deployExtension(repoPath, name);
+}
+
+function registerMCP(repoPath, door) {
+  // Strip npm scope (@org/) from name for claude mcp add compatibility
+  const rawName = door.name || basename(repoPath);
+  const name = rawName.replace(/^@[\w-]+\//, '');
+  const serverPath = join(repoPath, door.file);
+  // Use LDM-deployed path if it exists, otherwise repo path
+  const ldmServerPath = join(LDM_EXTENSIONS, basename(repoPath), door.file);
+  const mcpPath = existsSync(ldmServerPath) ? ldmServerPath : serverPath;
+
+  if (DRY_RUN) {
+    ok(`MCP (CC): would register ${name} at user scope (dry run)`);
+    ok(`MCP (OC): would add to ${OC_MCP} (dry run)`);
+    return true;
+  }
+
+  // 1. Register with Claude Code CLI at user scope
+  let ccRegistered = false;
+  try {
+    // Remove first if exists (update behavior)
+    try {
+      execSync(`claude mcp remove ${name} --scope user`, { stdio: 'pipe' });
+    } catch {}
+    const envFlag = existsSync(OC_ROOT) ? ` -e OPENCLAW_HOME="${OC_ROOT}"` : '';
+    execSync(`claude mcp add --scope user ${name}${envFlag} -- node "${mcpPath}"`, { stdio: 'pipe' });
+    ok(`MCP (CC): registered ${name} at user scope`);
+    ccRegistered = true;
+  } catch (e) {
+    // Fallback: write to ~/.claude/.mcp.json
+    try {
+      const ccMcpPath = join(HOME, '.claude', '.mcp.json');
+      const ccMcp = readJSON(ccMcpPath) || { mcpServers: {} };
+      ccMcp.mcpServers[name] = {
+        command: 'node',
+        args: [mcpPath],
+      };
+      writeJSON(ccMcpPath, ccMcp);
+      ok(`MCP (CC): registered ${name} in ~/.claude/.mcp.json (fallback)`);
+      ccRegistered = true;
+    } catch (e2) {
+      fail(`MCP (CC): registration failed. ${e.message}`);
+    }
+  }
+
+  // 2. Register in OpenClaw's .mcp.json (only if the file already exists)
+  if (existsSync(OC_MCP)) {
+    try {
+      const ocMcp = readJSON(OC_MCP) || { mcpServers: {} };
+      ocMcp.mcpServers[name] = {
+        command: 'node',
+        args: [mcpPath],
+      };
+      if (existsSync(OC_ROOT)) {
+        ocMcp.mcpServers[name].env = { OPENCLAW_HOME: OC_ROOT };
+      }
+      writeJSON(OC_MCP, ocMcp);
+      ok(`MCP (OC): registered ${name} in ${OC_MCP}`);
+    } catch (e) {
+      fail(`MCP (OC): registration failed. ${e.message}`);
+    }
+  }
+
+  return ccRegistered;
+}
+
 function installClaudeCodeHook(repoPath, door) {
-  const settingsPath = join(process.env.HOME, '.claude', 'settings.json');
+  const settingsPath = join(HOME, '.claude', 'settings.json');
   let settings = readJSON(settingsPath);
 
   if (!settings) {
@@ -134,6 +252,91 @@ function installClaudeCodeHook(repoPath, door) {
   }
 }
 
+// ── Single tool install ──
+
+function installSingleTool(toolPath) {
+  const { interfaces, pkg } = detectInterfaces(toolPath);
+  const ifaceNames = Object.keys(interfaces);
+
+  if (ifaceNames.length === 0) return 0;
+
+  const toolName = pkg?.name?.replace(/^@\w+\//, '') || basename(toolPath);
+
+  if (!JSON_OUTPUT) {
+    console.log('');
+    console.log(`  Installing: ${toolName}${DRY_RUN ? ' (dry run)' : ''}`);
+    console.log(`  ${'─'.repeat(40)}`);
+    log(`Detected ${ifaceNames.length} interface(s): ${ifaceNames.join(', ')}`);
+    console.log('');
+  }
+
+  if (DRY_RUN && !JSON_OUTPUT) {
+    console.log(describeInterfaces(interfaces));
+    return ifaceNames.length;
+  }
+
+  let installed = 0;
+  const registryInfo = {
+    name: toolName,
+    version: pkg?.version || 'unknown',
+    source: toolPath,
+    interfaces: ifaceNames,
+  };
+
+  if (interfaces.cli) {
+    if (installCLI(toolPath, interfaces.cli)) installed++;
+  }
+
+  // Deploy to LDM + OpenClaw (for plugins or any extension with MCP)
+  if (interfaces.openclaw) {
+    if (installOpenClaw(toolPath, interfaces.openclaw)) {
+      installed++;
+      registryInfo.ldmPath = join(LDM_EXTENSIONS, interfaces.openclaw.config?.name || basename(toolPath));
+      registryInfo.ocPath = join(OC_EXTENSIONS, interfaces.openclaw.config?.name || basename(toolPath));
+    }
+  } else if (interfaces.mcp) {
+    // Even without openclaw.plugin.json, deploy to LDM for MCP server access
+    const extName = basename(toolPath);
+    if (deployExtension(toolPath, extName)) {
+      registryInfo.ldmPath = join(LDM_EXTENSIONS, extName);
+      registryInfo.ocPath = join(OC_EXTENSIONS, extName);
+    }
+  }
+
+  if (interfaces.mcp) {
+    if (registerMCP(toolPath, interfaces.mcp)) installed++;
+  }
+
+  if (interfaces.claudeCodeHook) {
+    if (installClaudeCodeHook(toolPath, interfaces.claudeCodeHook)) installed++;
+  }
+
+  if (interfaces.skill) {
+    ok(`Skill: SKILL.md available at ${interfaces.skill.path}`);
+    installed++;
+  }
+
+  if (interfaces.module) {
+    ok(`Module: import from "${interfaces.module.main}"`);
+    installed++;
+  }
+
+  // Update registry
+  if (!DRY_RUN) {
+    try {
+      mkdirSync(LDM_EXTENSIONS, { recursive: true });
+      updateRegistry(toolName, registryInfo);
+      ok(`Registry: updated`);
+    } catch (e) {
+      fail(`Registry: update failed. ${e.message}`);
+    }
+  }
+
+  return installed;
+}
+
+// ── Main ──
+
 async function main() {
   if (!target || target === '--help' || target === '-h') {
     console.log('');
@@ -148,13 +351,22 @@ async function main() {
     console.log('    --dry-run   Detect interfaces without installing anything');
     console.log('    --json      Output detection results as JSON');
     console.log('');
-    console.log('  Interfaces it detects:');
+    console.log('  Interfaces it detects and installs:');
     console.log('    CLI        ... package.json bin entry -> npm install -g');
     console.log('    Module     ... ESM main/exports -> importable');
-    console.log('    MCP Server ... mcp-server.mjs -> config for .mcp.json');
-    console.log('    OpenClaw   ... openclaw.plugin.json -> copies to extensions/');
+    console.log('    MCP Server ... mcp-server.mjs -> claude mcp add --scope user');
+    console.log('    OpenClaw   ... openclaw.plugin.json -> ~/.ldm/extensions/ + ~/.openclaw/extensions/');
     console.log('    Skill      ... SKILL.md -> agent instructions');
-    console.log('    CC Hook    ... guard.mjs or claudeCode.hook -> settings.json');
+    console.log('    CC Hook    ... guard.mjs or claudeCode.hook -> ~/.claude/settings.json');
+    console.log('');
+    console.log('  Modes:');
+    console.log('    Single repo  ... installs one tool');
+    console.log('    Toolbox      ... detects tools/ subdirectories, installs each sub-tool');
+    console.log('');
+    console.log('  Paths:');
+    console.log('    LDM:       ~/.ldm/extensions/<name>/     (primary, for Claude Code)');
+    console.log('    OpenClaw:  ~/.openclaw/extensions/<name>/ (for Lesa/OpenClaw)');
+    console.log('    Registry:  ~/.ldm/extensions/registry.json');
     console.log('');
     process.exit(0);
   }
@@ -189,88 +401,64 @@ async function main() {
     }
   }
 
-  // JSON mode: detect and output
-  if (JSON_OUTPUT) {
-    const result = detectInterfacesJSON(repoPath);
-    console.log(JSON.stringify(result, null, 2));
-    if (DRY_RUN) process.exit(0);
-    // If not dry run, continue with install but suppress output
-  }
+  // Check for toolbox mode (tools/ subdirectories with package.json)
+  const subTools = detectToolbox(repoPath);
 
-  // Detect interfaces
-  const { interfaces, pkg } = detectInterfaces(repoPath);
-  const ifaceNames = Object.keys(interfaces);
+  if (subTools.length > 0) {
+    // Toolbox mode: install each sub-tool
+    const toolboxPkg = readJSON(join(repoPath, 'package.json'));
+    const toolboxName = toolboxPkg?.name?.replace(/^@\w+\//, '') || basename(repoPath);
 
-  if (ifaceNames.length === 0) {
-    skip('No installable interfaces detected.');
-    process.exit(0);
-  }
-
-  if (!JSON_OUTPUT) {
-    console.log('');
-    const repoName = basename(repoPath);
-    console.log(`  Installing: ${repoName}${DRY_RUN ? ' (dry run)' : ''}`);
-    console.log(`  ${'─'.repeat(40)}`);
-    log(`Detected ${ifaceNames.length} interface(s): ${ifaceNames.join(', ')}`);
-    console.log('');
-  }
-
-  if (DRY_RUN && !JSON_OUTPUT) {
-    // In dry run, show what would happen
-    console.log(describeInterfaces(interfaces));
-    console.log('');
-    console.log('  Dry run complete. No changes made.');
-    console.log('');
-    process.exit(0);
-  }
-
-  // Install each interface
-  let installed = 0;
-
-  if (interfaces.cli) {
-    installCLI(repoPath, interfaces.cli);
-    installed++;
-  }
-
-  if (interfaces.openclaw) {
-    installOpenClaw(repoPath, interfaces.openclaw);
-    installed++;
-  }
-
-  if (interfaces.claudeCodeHook) {
-    installClaudeCodeHook(repoPath, interfaces.claudeCodeHook);
-    installed++;
-  }
-
-  if (interfaces.mcp) {
     if (!JSON_OUTPUT) {
       console.log('');
-      log(`MCP Server detected: ${interfaces.mcp.file}`);
-      log(`Add to .mcp.json:`);
-      console.log(JSON.stringify({
-        [interfaces.mcp.name]: {
-          command: 'node',
-          args: [join(repoPath, interfaces.mcp.file)]
-        }
-      }, null, 2));
+      console.log(`  Toolbox: ${toolboxName}`);
+      console.log(`  ${'═'.repeat(50)}`);
+      log(`Found ${subTools.length} sub-tool(s): ${subTools.map(t => t.name).join(', ')}`);
     }
-    installed++;
-  }
 
-  if (interfaces.skill) {
-    ok(`Skill: SKILL.md available at ${interfaces.skill.path}`);
-    installed++;
-  }
+    let totalInstalled = 0;
+    let toolsProcessed = 0;
 
-  if (interfaces.module) {
-    ok(`Module: import from "${interfaces.module.main}"`);
-    installed++;
-  }
+    for (const subTool of subTools) {
+      const count = installSingleTool(subTool.path);
+      totalInstalled += count;
+      if (count > 0) toolsProcessed++;
+    }
 
-  if (!JSON_OUTPUT) {
-    console.log('');
-    console.log(`  Done. ${installed} interface(s) processed.`);
-    console.log('');
+    if (!JSON_OUTPUT) {
+      console.log('');
+      console.log(`  ${'═'.repeat(50)}`);
+      if (DRY_RUN) {
+        console.log(`  Dry run complete. ${toolsProcessed} tool(s) scanned, ${totalInstalled} interface(s) detected.`);
+      } else {
+        console.log(`  Done. ${toolsProcessed} tool(s), ${totalInstalled} interface(s) processed.`);
+      }
+      console.log('');
+    }
+  } else {
+    // Single repo mode
+    if (JSON_OUTPUT) {
+      const result = detectInterfacesJSON(repoPath);
+      console.log(JSON.stringify(result, null, 2));
+      if (DRY_RUN) process.exit(0);
+    }
+
+    const installed = installSingleTool(repoPath);
+
+    if (installed === 0) {
+      skip('No installable interfaces detected.');
+      process.exit(0);
+    }
+
+    if (!JSON_OUTPUT) {
+      console.log('');
+      if (DRY_RUN) {
+        console.log('  Dry run complete. No changes made.');
+      } else {
+        console.log(`  Done. ${installed} interface(s) processed.`);
+      }
+      console.log('');
+    }
   }
 }
 

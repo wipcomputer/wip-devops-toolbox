@@ -1,3 +1,7 @@
+###### WIP Computer
+
+[![npm](https://img.shields.io/npm/v/@wipcomputer/wip-repos)](https://www.npmjs.com/package/@wipcomputer/wip-repos) [![CLI / TUI](https://img.shields.io/badge/interface-CLI_/_TUI-black)](https://github.com/wipcomputer/wip-devops-toolbox/blob/main/tools/wip-repos/cli.mjs) [![MCP Server](https://img.shields.io/badge/interface-MCP_Server-black)](https://github.com/wipcomputer/wip-devops-toolbox/blob/main/tools/wip-repos/mcp-server.mjs) [![Claude Code Skill](https://img.shields.io/badge/interface-Claude_Code_Skill-black)](https://github.com/wipcomputer/wip-devops-toolbox/blob/main/tools/wip-repos/SKILL.md) [![Universal Interface Spec](https://img.shields.io/badge/Universal_Interface_Spec-black?style=flat&color=black)](https://github.com/wipcomputer/wip-devops-toolbox/blob/main/tools/wip-universal-installer/SPEC.md)
+
 # wip-repos
 
 Repo manifest reconciler. Single source of truth for repo organization.
@@ -63,4 +67,11 @@ Pure JavaScript. Zero dependencies. `core.mjs` (logic), `cli.mjs` (CLI). No buil
 
 ## License
 
-MIT
+```
+CLI, MCP server, module                        MIT    (use anywhere, no restrictions)
+Hosted or cloud service use                    AGPL   (network service distribution)
+```
+
+AGPL for personal use is free.
+
+Built by Parker Todd Brooks, Lēsa (OpenClaw, Claude Opus 4.6), Claude Code (Claude Opus 4.6).

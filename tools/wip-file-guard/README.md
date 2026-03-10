@@ -1,4 +1,7 @@
 ###### WIP Computer
+
+[![npm](https://img.shields.io/npm/v/@wipcomputer/wip-file-guard)](https://www.npmjs.com/package/@wipcomputer/wip-file-guard) [![CLI / TUI](https://img.shields.io/badge/interface-CLI_/_TUI-black)](https://github.com/wipcomputer/wip-devops-toolbox/blob/main/tools/wip-file-guard/guard.mjs) [![OpenClaw Plugin](https://img.shields.io/badge/interface-OpenClaw_Plugin-black)](https://github.com/wipcomputer/wip-devops-toolbox/blob/main/tools/wip-file-guard/openclaw.plugin.json) [![Claude Code Hook](https://img.shields.io/badge/interface-Claude_Code_Hook-black)](https://github.com/wipcomputer/wip-devops-toolbox/blob/main/tools/wip-file-guard/guard.mjs) [![Claude Code Skill](https://img.shields.io/badge/interface-Claude_Code_Skill-black)](https://github.com/wipcomputer/wip-devops-toolbox/blob/main/tools/wip-file-guard/SKILL.md) [![Universal Interface Spec](https://img.shields.io/badge/Universal_Interface_Spec-black?style=flat&color=black)](https://github.com/wipcomputer/wip-devops-toolbox/blob/main/tools/wip-universal-installer/SPEC.md)
+
 # File Guard
 
 PreToolUse hook that blocks destructive edits to protected files. When an AI agent tries to overwrite or strip content from files like CLAUDE.md, SHARED-CONTEXT.md, or SOUL.md... it gets blocked with a clear explanation of what went wrong.
@@ -100,6 +103,11 @@ This happened five times in one session. The fix isn't better prompting. It's a 
 
 ## License
 
-MIT
+```
+CLI, OpenClaw plugin, hooks                    MIT    (use anywhere, no restrictions)
+Hosted or cloud service use                    AGPL   (network service distribution)
+```
 
-Built by Parker Todd Brooks, with Claude Code and Lēsa (OpenClaw).
+AGPL for personal use is free.
+
+Built by Parker Todd Brooks, Lēsa (OpenClaw, Claude Opus 4.6), Claude Code (Claude Opus 4.6).
