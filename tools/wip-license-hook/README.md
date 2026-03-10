@@ -1,3 +1,7 @@
+###### WIP Computer
+
+[![npm](https://img.shields.io/npm/v/@wipcomputer/wip-license-hook)](https://www.npmjs.com/package/@wipcomputer/wip-license-hook) [![CLI / TUI](https://img.shields.io/badge/interface-CLI_/_TUI-black)](https://github.com/wipcomputer/wip-devops-toolbox/blob/main/tools/wip-license-hook/cli.js) [![MCP Server](https://img.shields.io/badge/interface-MCP_Server-black)](https://github.com/wipcomputer/wip-devops-toolbox/blob/main/tools/wip-license-hook/mcp-server.mjs) [![Claude Code Skill](https://img.shields.io/badge/interface-Claude_Code_Skill-black)](https://github.com/wipcomputer/wip-devops-toolbox/blob/main/tools/wip-license-hook/SKILL.md) [![Universal Interface Spec](https://img.shields.io/badge/Universal_Interface_Spec-black?style=flat&color=black)](https://github.com/wipcomputer/wip-devops-toolbox/blob/main/tools/wip-universal-installer/SPEC.md)
+
 # wip-license-hook
 
 License rug-pull detection and dependency license compliance for open source projects.
@@ -186,4 +190,11 @@ If your dependency gets rug-pulled, you have:
 
 ## License
 
-MIT (and we mean it)
+```
+CLI, MCP server, skills                        MIT    (use anywhere, no restrictions)
+Hosted or cloud service use                    AGPL   (network service distribution)
+```
+
+AGPL for personal use is free.
+
+Built by Parker Todd Brooks, Lēsa (OpenClaw, Claude Opus 4.6), Claude Code (Claude Opus 4.6).

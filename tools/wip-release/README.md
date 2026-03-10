@@ -35,6 +35,11 @@ See [REFERENCE.md](REFERENCE.md) for full usage, pipeline steps, flags, auth, an
 
 ## License
 
-MIT
+```
+CLI, MCP server, skills                        MIT    (use anywhere, no restrictions)
+Hosted or cloud service use                    AGPL   (network service distribution)
+```
 
-Built by Parker Todd Brooks, with Claude Code and Lēsa (OpenClaw).
+AGPL for personal use is free.
+
+Built by Parker Todd Brooks, Lēsa (OpenClaw, Claude Opus 4.6), Claude Code (Claude Opus 4.6).

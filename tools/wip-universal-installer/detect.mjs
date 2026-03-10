@@ -4,7 +4,7 @@
  * Importable by other tools. Zero dependencies.
  */
 
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join, basename } from 'node:path';
 
 function readJSON(path) {
@@ -90,6 +90,24 @@ export function describeInterfaces(interfaces) {
   if (interfaces.claudeCodeHook) lines.push(`Claude Code Hook: ${interfaces.claudeCodeHook.event || 'PreToolUse'}`);
 
   return `${names.length} interface(s): ${names.join(', ')}\n${lines.map(l => `  ${l}`).join('\n')}`;
+}
+
+/**
+ * Detect if a repo is a toolbox (has tools/ subdirectories with package.json).
+ * Returns array of { name, path } for each sub-tool, or empty array if not a toolbox.
+ */
+export function detectToolbox(repoPath) {
+  const toolsDir = join(repoPath, 'tools');
+  if (!existsSync(toolsDir)) return [];
+
+  try {
+    const entries = readdirSync(toolsDir, { withFileTypes: true });
+    return entries
+      .filter(e => e.isDirectory() && existsSync(join(toolsDir, e.name, 'package.json')))
+      .map(e => ({ name: e.name, path: join(toolsDir, e.name) }));
+  } catch {
+    return [];
+  }
 }
 
 /**
