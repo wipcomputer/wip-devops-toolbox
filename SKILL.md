@@ -142,6 +142,36 @@ Core tools are agent-callable via MCP. Add to `.mcp.json`:
 
 MCP tools available: `release`, `release_status`, `license_scan`, `license_audit`, `license_gate`, `license_ledger`, `repo_permissions_check`, `repo_permissions_audit`, `repos_check`, `repos_sync_plan`, `repos_add`, `repos_move`, `repos_tree`
 
+### Talk to Your Tools
+
+Example prompts your AI can act on directly:
+
+```
+"Scan all dependencies for license changes"       -> license_scan
+"Check if memory-crystal can go public"            -> repo_permissions_check
+"Do a patch release with notes 'fix login bug'"    -> release
+"Show me which repos aren't in the manifest"       -> repos_check
+"Audit the whole org's repo visibility"             -> repo_permissions_audit
+"What version is this repo at?"                     -> release_status
+"Gate this merge on license compliance"             -> license_gate
+"Show the license compliance ledger"                -> license_ledger
+```
+
+## Interface Coverage
+
+| Tool | CLI | Module | MCP | OpenClaw | Skill | CC Hook |
+|------|-----|--------|-----|----------|-------|---------|
+| Universal Installer | Y | Y | - | - | Y | - |
+| Release Pipeline | Y | Y | Y | - | Y | - |
+| License Rug-Pull Detection | Y | Y | Y | - | Y | - |
+| License Guard | Y | Y | - | - | - | - |
+| Repo Visibility Guard | Y | Y | Y | Y | Y | Y |
+| Identity File Protection | Y | Y | - | Y | Y | Y |
+| Repo Manifest | Y | Y | Y | - | Y | - |
+| Deploy Public | Y | - | - | - | Y | - |
+| Post-Merge Rename | Y | - | - | - | Y | - |
+| LDM Dev Tools.app | - | - | - | - | - | - |
+
 ## Setup
 
 Install all tools with one command:

@@ -142,11 +142,12 @@ async function check(repoPath) {
     }
   }
 
-  // Check README
+  // Check README (license + structure standard)
   const readmePath = join(repoPath, 'README.md');
   if (existsSync(readmePath)) {
     const readme = readFileSync(readmePath, 'utf8');
 
+    // License checks
     if (!readme.includes('## License')) {
       warn('README.md missing ## License section');
       issues++;
@@ -159,6 +160,35 @@ async function check(repoPath) {
       issues++;
     } else if (config.license === 'MIT+AGPL') {
       ok('README.md references AGPL');
+    }
+
+    // README structure standard checks
+    if (!readme.match(/^#\s+\S/m)) {
+      warn('README.md missing # title');
+      issues++;
+    } else {
+      ok('README.md has title');
+    }
+
+    if (config.attribution && !readme.includes(config.attribution.split(',')[0])) {
+      warn('README.md missing attribution');
+      issues++;
+    } else if (config.attribution) {
+      ok('README.md has attribution');
+    }
+
+    // Warn if README contains content that belongs in TECHNICAL.md
+    const technicalPatterns = [
+      /## (Architecture|API|Config|Configuration|Build|Development Setup|Quick Start)/i,
+      /```json\s*\n\s*\{[\s\S]*?"command"/,  // MCP config blocks
+      /npm install -g /,  // install commands belong in TECHNICAL.md
+    ];
+    for (const pattern of technicalPatterns) {
+      if (pattern.test(readme)) {
+        warn('README.md contains technical content (move to TECHNICAL.md)');
+        issues++;
+        break;
+      }
     }
   } else {
     warn('README.md not found');

@@ -18,7 +18,39 @@ function flag(name) {
 
 const dryRun = args.includes('--dry-run');
 const noPublish = args.includes('--no-publish');
-const notes = flag('notes');
+const notesFilePath = flag('notes-file');
+let notes = flag('notes');
+
+// Auto-detect RELEASE-NOTES-v{version}.md if no --notes or --notes-file provided.
+// Also supports explicit --notes-file for custom paths.
+{
+  const { readFileSync, existsSync } = await import('node:fs');
+  const { resolve, join } = await import('node:path');
+
+  if (notesFilePath) {
+    // Explicit --notes-file
+    const resolved = resolve(notesFilePath);
+    if (!existsSync(resolved)) {
+      console.error(`  ✗ Notes file not found: ${resolved}`);
+      process.exit(1);
+    }
+    notes = readFileSync(resolved, 'utf8').trim();
+  } else if (!notes && level) {
+    // Auto-detect: compute the next version and look for RELEASE-NOTES-v{version}.md
+    try {
+      const { detectCurrentVersion, bumpSemver } = await import('./core.mjs');
+      const cwd = process.cwd();
+      const currentVersion = detectCurrentVersion(cwd);
+      const newVersion = bumpSemver(currentVersion, level);
+      const dashed = newVersion.replace(/\./g, '-');
+      const autoFile = join(cwd, `RELEASE-NOTES-v${dashed}.md`);
+      if (existsSync(autoFile)) {
+        notes = readFileSync(autoFile, 'utf8').trim();
+        console.log(`  ✓ Found RELEASE-NOTES-v${dashed}.md`);
+      }
+    } catch {}
+  }
+}
 
 if (!level || args.includes('--help') || args.includes('-h')) {
   const cwd = process.cwd();
@@ -33,9 +65,15 @@ Usage:
   wip-release major                    1.0.0 -> 2.0.0
 
 Flags:
-  --notes="description"    Changelog entry text
+  --notes="description"    Release narrative (what was built and why)
+  --notes-file=path        Read release narrative from a markdown file
   --dry-run                Show what would happen, change nothing
   --no-publish             Bump + tag only, skip npm/GitHub
+
+Release notes:
+  Auto-detects RELEASE-NOTES-v{version}.md (e.g. RELEASE-NOTES-v1-6-0.md).
+  Write the file on your branch, review it in the PR, and wip-release
+  picks it up automatically on release day. No --notes-file needed.
 
 Pipeline:
   1. Bump package.json version
