@@ -12,6 +12,29 @@ Used internally to manage 100+ repos, 200+ releases, and daily license complianc
 
 **Real-world example:** [wip-universal-installer](tools/wip-universal-installer/) ships its releases entirely through wip-release. 6 releases, v2.1.5, changelog and GitHub releases all generated automatically.
 
+## Quick Start (manual install)
+
+```bash
+# Install the universal installer
+npm install -g @wipcomputer/universal-installer
+
+# Preview what will be installed (9 tools, 30+ interfaces)
+wip-install wipcomputer/wip-devops-toolbox --dry-run
+
+# Install everything
+wip-install wipcomputer/wip-devops-toolbox
+
+# Verify: run one check from each major category
+wip-license-guard check              # copyright compliance
+wip-repo-permissions audit wipcomputer  # visibility guard
+wip-repos check                      # manifest reconciliation
+```
+
+Or install individual tools:
+```bash
+npm install -g @wipcomputer/wip-release @wipcomputer/wip-license-hook @wipcomputer/universal-installer @wipcomputer/wip-repos
+```
+
 ## Tools
 
 ### wip-universal-installer
@@ -79,11 +102,15 @@ Logs: `/tmp/ldm-dev-tools/`
 
 ### wip-release
 
-One-command release pipeline. Version bump, changelog, SKILL.md sync, npm publish, GitHub release. All in one shot.
+One-command release pipeline. Version bump, changelog, SKILL.md sync, npm publish, GitHub release. All in one shot. Release notes live on the branch so you review them in the PR before they go live.
 
 ```bash
-wip-release patch --notes="fix: offline detection"
+wip-release patch --notes="description of what was built and why"
+wip-release minor                               # auto-detects RELEASE-NOTES-v{version}.md
+wip-release major --dry-run
 ```
+
+**Release notes convention:** Write `RELEASE-NOTES-v{version}.md` (e.g. `RELEASE-NOTES-v1-6-0.md`) on your feature branch. It shows up in the PR diff for review. On release, wip-release auto-detects the file and uses it as the GitHub release body. One file, renamed each release. Warns when notes are missing, too short, or look like changelog entries instead of narrative.
 
 **Source:** Pure JavaScript, no build step. [`tools/wip-release/cli.js`](tools/wip-release/cli.js) (entry point), [`tools/wip-release/core.mjs`](tools/wip-release/core.mjs) (main logic). Zero dependencies.
 

@@ -35,6 +35,16 @@ Your agent will read the repo, explain everything, and walk you through setup in
 
 Every tool ships as one or more **interfaces:** the ways you and your AI can use it. **CLI** runs in your terminal. **Module** imports into your code. **MCP** connects to any AI that supports Model Context Protocol. **OpenClaw** plugs into the OpenClaw agent platform. **Skill** teaches your AI how to use the tool via a SKILL.md prompt. **CC Hook** runs automatically inside Claude Code on specific events.
 
+Andrej Karpathy put it clearly:
+
+> "I think the app store, the move to mobile, the concept of an app ... is an increasingly outdated concept. What matters are sensors and actuators. Sensors are things that convert physical state into digital state. Actuators are things that convert digital intent into physical change."
+>
+> "All LLMs care about are tools and the tools fall into this sensor/actuator divide. Software shouldn't be built into apps, but into small bespoke tools. Apps are for people. Tools are for LLMs, and increasingly, LLMs are the ones using software."
+
+[Source](https://x.com/karpathy/status/2024583544157458452)
+
+*This is the future of software. Not apps. Tools. Sensors and actuators that agents compose together:*
+
 **Universal Installer**
 - One command installs everything a repo ships. CLI binaries, MCP servers, plugins, hooks. Detects what a repo supports and deploys it all. Toolbox mode walks every sub-tool automatically
 - **Interfaces:** CLI, Module, Skill
@@ -51,7 +61,7 @@ Every tool ships as one or more **interfaces:** the ways you and your AI can use
 - [Read more about LDM Dev Tools.app](tools/ldm-jobs/README.md)
 
 **Release Pipeline**
-- One-command releases. Version bump, changelog, SKILL.md sync, npm publish, GitHub release. All in one shot. Never skip a step again
+- One-command releases. Version bump, changelog, SKILL.md sync, npm publish, GitHub release. All in one shot. Never skip a step again. Release notes live on the branch so you review them in the PR before they go live. Warns when notes are too short or look like changelogs instead of narrative
 - **Interfaces:** CLI, Module, MCP, Skill
 - *Stable*
 - [Read more about Release Pipeline](tools/wip-release/README.md)
@@ -61,6 +71,12 @@ Every tool ships as one or more **interfaces:** the ways you and your AI can use
 - **Interfaces:** CLI, Module, MCP, Skill
 - *Stable*
 - [Read more about License Detection](tools/wip-license-hook/README.md)
+
+**License Guard**
+- Ensures your own repos have correct copyright, license type, and LICENSE files. Interactive first-run setup asks what licensing you want. Subsequent runs audit and enforce. Toolbox-aware: checks every sub-tool. Auto-fix mode repairs issues
+- **Interfaces:** CLI, Module
+- *Beta*
+- [Read more about License Guard](tools/wip-license-guard/cli.mjs)
 
 **Repo Visibility Guard**
 - Blocks repos from going public without a `-private` counterpart. Catches accidental exposure of internal plans, todos, and development context before it happens
@@ -92,6 +108,21 @@ Every tool ships as one or more **interfaces:** the ways you and your AI can use
 - *Stable*
 - [Read more about Post-Merge Naming](tools/post-merge-rename/SKILL.md)
 
+## Interface Coverage
+
+| Tool | CLI | Module | MCP | OpenClaw | Skill | CC Hook |
+|------|-----|--------|-----|----------|-------|---------|
+| Universal Installer | Y | Y | - | - | Y | - |
+| Release Pipeline | Y | Y | Y | - | Y | - |
+| License Rug-Pull Detection | Y | Y | Y | - | Y | - |
+| License Guard | Y | Y | - | - | - | - |
+| Repo Visibility Guard | Y | Y | Y | Y | Y | Y |
+| Identity File Protection | Y | Y | - | Y | Y | Y |
+| Repo Manifest | Y | Y | Y | - | Y | - |
+| Deploy Public | Y | - | - | - | Y | - |
+| Post-Merge Rename | Y | - | - | - | Y | - |
+| LDM Dev Tools.app | - | - | - | - | - | - |
+
 ## More Info
 
 - [Technical Documentation](TECHNICAL.md) ... Source code locations, build steps, development setup, architecture details
@@ -101,10 +132,24 @@ Every tool ships as one or more **interfaces:** the ways you and your AI can use
 ## License
 
 ```
-MIT    All CLI tools, MCP servers, skills, and hooks (use anywhere, no restrictions).
-AGPLv3 Commercial redistribution, marketplace listings, or bundling into paid services.
+MIT      All CLI tools, MCP servers, skills, and hooks (use anywhere, no restrictions).
+AGPLv3   Commercial redistribution, marketplace listings, or bundling into paid services.
 ```
 
-AGPL for personal use is free. Commercial licenses available.
+AGPLv3 for personal use is free. Commercial licenses available.
+
+### Can I use this?
+
+**Yes, freely:**
+- Use any tool locally or on your own servers
+- Modify the code for your own projects
+- Include in your internal CI/CD pipelines
+- Fork it and send us feedback via PRs (we'd love that)
+
+**Need a commercial license:**
+- Bundle into a product you sell
+- List on a marketplace (VS Code, JetBrains, etc.)
+- Offer as part of a hosted/SaaS platform
+- Redistribute commercially
 
 Built by Parker Todd Brooks, Lēsa (OpenClaw, Claude Opus 4.6), Claude Code (Claude Opus 4.6).

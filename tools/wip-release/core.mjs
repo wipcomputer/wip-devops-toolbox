@@ -54,6 +54,20 @@ export function syncSkillVersion(repoPath, newVersion) {
   if (!existsSync(skillPath)) return false;
 
   let content = readFileSync(skillPath, 'utf8');
+
+  // Check for staleness: if SKILL.md version is more than a patch behind,
+  // warn that content may need updating (not just the version number)
+  const skillVersionMatch = content.match(/^---[\s\S]*?version:\s*(\S+)[\s\S]*?---/);
+  if (skillVersionMatch) {
+    const skillVersion = skillVersionMatch[1];
+    const [sMaj, sMin] = skillVersion.split('.').map(Number);
+    const [nMaj, nMin] = newVersion.split('.').map(Number);
+    if (nMaj > sMaj || nMin > sMin + 1) {
+      console.warn(`  ! SKILL.md is at ${skillVersion}, releasing ${newVersion}`);
+      console.warn(`    SKILL.md content may be stale. Review tool list and interfaces.`);
+    }
+  }
+
   // Match version: X.Y.Z in YAML frontmatter (between --- markers)
   const updated = content.replace(
     /^(---[\s\S]*?)(version:\s*)\S+([\s\S]*?---)/,
@@ -168,10 +182,34 @@ function categorizeCommit(subject) {
 }
 
 /**
- * Build detailed, categorized release notes from git history and repo metadata.
+ * Warn if release notes are too thin. Release notes should be narrative:
+ * what was built, why it was built, and why it matters. Not just a changelog.
+ */
+function warnIfNotesAreThin(notes) {
+  if (!notes) {
+    console.warn('  ! No --notes provided. Release notes will be commit-only.');
+    console.warn('    For better releases, use --notes="narrative" or --notes-file=path.');
+    console.warn('    Explain what was built, why, and why it matters.');
+    return;
+  }
+
+  // Check for changelog-style one-liners
+  const looksLikeChangelog = /^(fix|add|update|remove|bump|chore|refactor|docs?)[\s:]/i.test(notes);
+  const isTooShort = notes.length < 50;
+
+  if (looksLikeChangelog && isTooShort) {
+    console.warn('  ! Release notes look like a changelog entry, not a narrative.');
+    console.warn('    Explain what was built, why, and why it matters.');
+  } else if (isTooShort) {
+    console.warn('  ! Release notes are very short. Consider explaining what changed and why.');
+  }
+}
+
+/**
+ * Build release notes with narrative first, commit details second.
  *
- * Produces structured notes with Changes, Fixes, Docs sections.
- * Each commit is categorized by its message prefix.
+ * Release notes should tell the story: what was built, why, and why it matters.
+ * Commit history is included as supporting detail, not the main content.
  * ai/ files are excluded from the files-changed stats.
  */
 export function buildReleaseNotes(repoPath, currentVersion, newVersion, notes) {
@@ -179,7 +217,7 @@ export function buildReleaseNotes(repoPath, currentVersion, newVersion, notes) {
   const pkg = JSON.parse(readFileSync(join(repoPath, 'package.json'), 'utf8'));
   const lines = [];
 
-  // Summary
+  // Narrative summary (the main content of the release notes)
   if (notes) {
     lines.push(notes);
     lines.push('');
@@ -215,46 +253,38 @@ export function buildReleaseNotes(repoPath, currentVersion, newVersion, notes) {
     categories[cat].push(commit);
   }
 
-  // Changes section
-  if (categories.changes.length > 0) {
-    lines.push('### Changes\n');
-    for (const c of categories.changes) {
-      lines.push(`- ${c.subject} (${c.hash})`);
-    }
+  // Commit details section (supporting detail, not the headline)
+  const hasCommits = categories.changes.length + categories.fixes.length + categories.docs.length > 0;
+  if (hasCommits) {
+    lines.push('<details>');
+    lines.push('<summary>What changed (commits)</summary>');
     lines.push('');
-  }
 
-  // Fixes section
-  if (categories.fixes.length > 0) {
-    lines.push('### Fixes\n');
-    for (const c of categories.fixes) {
-      lines.push(`- ${c.subject} (${c.hash})`);
+    if (categories.changes.length > 0) {
+      lines.push('**Changes**');
+      for (const c of categories.changes) {
+        lines.push(`- ${c.subject} (${c.hash})`);
+      }
+      lines.push('');
     }
-    lines.push('');
-  }
 
-  // Docs section
-  if (categories.docs.length > 0) {
-    lines.push('### Docs\n');
-    for (const c of categories.docs) {
-      lines.push(`- ${c.subject} (${c.hash})`);
+    if (categories.fixes.length > 0) {
+      lines.push('**Fixes**');
+      for (const c of categories.fixes) {
+        lines.push(`- ${c.subject} (${c.hash})`);
+      }
+      lines.push('');
     }
-    lines.push('');
-  }
 
-  // Files changed (exclude ai/ from stats for public-facing notes)
-  let filesChanged = '';
-  try {
-    filesChanged = execFileSync('git', [
-      'diff', `${prevTag}..HEAD`, '--stat', '--', '.', ':!ai/'
-    ], { cwd: repoPath, encoding: 'utf8' }).trim();
-  } catch {}
+    if (categories.docs.length > 0) {
+      lines.push('**Docs**');
+      for (const c of categories.docs) {
+        lines.push(`- ${c.subject} (${c.hash})`);
+      }
+      lines.push('');
+    }
 
-  if (filesChanged) {
-    lines.push('### Files changed\n');
-    lines.push('```');
-    lines.push(filesChanged);
-    lines.push('```');
+    lines.push('</details>');
     lines.push('');
   }
 
@@ -273,7 +303,7 @@ export function buildReleaseNotes(repoPath, currentVersion, newVersion, notes) {
   // Attribution
   lines.push('---');
   lines.push('');
-  lines.push('Built by Parker Todd Brooks, Lēsa (OpenClaw, Claude Opus 4.6), Claude Code CLI (Claude Opus 4.6).');
+  lines.push('Built by Parker Todd Brooks, Lēsa (OpenClaw, Claude Opus 4.6), Claude Code (Claude Opus 4.6).');
 
   // Compare URL
   if (slug) {
@@ -431,7 +461,8 @@ export async function release({ repoPath, level, notes, dryRun, noPublish }) {
       console.log(`  ✗ GitHub Packages publish failed: ${e.message}`);
     }
 
-    // 8. GitHub release
+    // 8. GitHub release (warn if notes are thin)
+    warnIfNotesAreThin(notes);
     try {
       createGitHubRelease(repoPath, newVersion, notes, currentVersion);
       console.log(`  ✓ GitHub release v${newVersion} created`);
