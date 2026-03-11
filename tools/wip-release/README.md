@@ -6,7 +6,7 @@
 
 You ship a fix. Now you have to bump package.json, update CHANGELOG.md, sync the version in SKILL.md, commit, tag, push, publish to npm, publish to GitHub Packages, and create a GitHub release. Every time. Miss a step and versions drift.
 
-`wip-release` does all of it in one command.
+`wip-release` does all of it in one command. It also checks that product docs (dev update, roadmap, readme-first) are up to date before publishing. Patches get a warning. Minor and major releases are blocked until docs are updated.
 
 ## Install
 

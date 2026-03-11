@@ -30,6 +30,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
           notes: { type: 'string', description: 'Changelog entry and release notes summary' },
           dryRun: { type: 'boolean', description: 'Preview only, no changes', default: false },
           noPublish: { type: 'boolean', description: 'Bump + tag only, skip npm/GitHub publish', default: false },
+          skipProductCheck: { type: 'boolean', description: 'Skip product doc freshness check', default: false },
         },
         required: ['level', 'notes'],
       },
@@ -61,7 +62,9 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
         level: args.level,
         notes: args.notes,
         dryRun: args.dryRun || false,
+        notesSource: 'flag', // MCP always passes notes directly
         noPublish: args.noPublish || false,
+        skipProductCheck: args.skipProductCheck || false,
       });
       return {
         content: [{

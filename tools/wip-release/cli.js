@@ -18,8 +18,10 @@ function flag(name) {
 
 const dryRun = args.includes('--dry-run');
 const noPublish = args.includes('--no-publish');
+const skipProductCheck = args.includes('--skip-product-check');
 const notesFilePath = flag('notes-file');
 let notes = flag('notes');
+let notesSource = notes ? 'flag' : 'none'; // track where notes came from
 
 // Auto-detect RELEASE-NOTES-v{version}.md if no --notes or --notes-file provided.
 // Also supports explicit --notes-file for custom paths.
@@ -35,6 +37,7 @@ let notes = flag('notes');
       process.exit(1);
     }
     notes = readFileSync(resolved, 'utf8').trim();
+    notesSource = 'file';
   } else if (!notes && level) {
     // Auto-detect: compute the next version and look for RELEASE-NOTES-v{version}.md
     try {
@@ -46,6 +49,7 @@ let notes = flag('notes');
       const autoFile = join(cwd, `RELEASE-NOTES-v${dashed}.md`);
       if (existsSync(autoFile)) {
         notes = readFileSync(autoFile, 'utf8').trim();
+        notesSource = 'file';
         console.log(`  ✓ Found RELEASE-NOTES-v${dashed}.md`);
       }
     } catch {}
@@ -68,6 +72,7 @@ let notes = flag('notes');
           const devUpdateContent = readFileSync(devUpdatePath, 'utf8').trim();
           if (devUpdateContent.length > (notes || '').length) {
             notes = devUpdateContent;
+            notesSource = 'dev-update';
             console.log(`  ✓ Found dev update: ai/dev-updates/${todayFiles[0]}`);
           }
         }
@@ -93,6 +98,7 @@ Flags:
   --notes-file=path        Read release narrative from a markdown file
   --dry-run                Show what would happen, change nothing
   --no-publish             Bump + tag only, skip npm/GitHub
+  --skip-product-check     Skip product docs check (dev update, roadmap, readme-first)
 
 Release notes:
   Auto-detects notes from three sources (first match wins):
@@ -117,8 +123,10 @@ release({
   repoPath: process.cwd(),
   level,
   notes,
+  notesSource,
   dryRun,
   noPublish,
+  skipProductCheck,
 }).catch(err => {
   console.error(`  ✗ ${err.message}`);
   process.exit(1);
