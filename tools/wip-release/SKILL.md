@@ -56,10 +56,24 @@ Local release pipeline. One command bumps version, updates all docs, publishes e
 ### CLI
 
 ```bash
-wip-release patch --notes="fix X"    # full pipeline
-wip-release minor --dry-run          # preview only
-wip-release major --no-publish       # bump + tag only
+wip-release patch --notes="fix X"           # full pipeline
+wip-release minor --dry-run                 # preview only
+wip-release major --no-publish              # bump + tag only
+wip-release patch --skip-product-check      # skip product docs gate
 ```
+
+### Product Docs Gate
+
+wip-release checks that product docs (dev update, roadmap, readme-first) were updated before publishing. Only runs on repos with an `ai/` directory.
+
+- **patch**: warns if product docs are stale (non-blocking)
+- **minor/major**: blocks release until product docs are updated
+- **--skip-product-check**: bypasses the gate
+
+Checks:
+1. `ai/dev-updates/` has a file from the last 3 days
+2. `ai/product/plans-prds/roadmap.md` was modified since last release
+3. `ai/product/readme-first-product.md` was modified since last release
 
 ### Module
 

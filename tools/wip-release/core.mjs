@@ -201,27 +201,107 @@ function categorizeCommit(subject) {
 }
 
 /**
- * Warn if release notes are too thin. Release notes should be narrative:
- * what was built, why it was built, and why it matters. Not just a changelog.
+ * Check release notes quality. Returns { ok, issues[] }.
+ *
+ * notesSource: 'file' (RELEASE-NOTES-v*.md or --notes-file),
+ *              'dev-update' (ai/dev-updates/ fallback),
+ *              'flag' (bare --notes="string"),
+ *              'none' (nothing provided).
+ *
+ * For minor/major: BLOCKS if notes came from bare --notes flag or are missing.
+ *   Agents must write a RELEASE-NOTES-v{version}.md file and commit it.
+ * For patch: WARNS only.
  */
-function warnIfNotesAreThin(notes) {
+function checkReleaseNotes(notes, notesSource, level) {
+  const issues = [];
+  const isMinorOrMajor = level === 'minor' || level === 'major';
+
   if (!notes) {
-    console.warn('  ! No --notes provided. Release notes will be commit-only.');
-    console.warn('    For better releases, use --notes="narrative" or --notes-file=path.');
-    console.warn('    Explain what was built, why, and why it matters.');
-    return;
+    issues.push('No release notes provided. Write a RELEASE-NOTES-v{version}.md file.');
+    return { ok: false, issues };
   }
 
-  // Check for changelog-style one-liners
+  // Bare --notes flag is not acceptable for minor/major.
+  // Agents must write a file, not pass a one-liner.
+  if (notesSource === 'flag') {
+    if (isMinorOrMajor) {
+      issues.push('Release notes came from --notes flag, not a file.');
+      issues.push('Write RELEASE-NOTES-v{version}.md (dashes not dots) and commit it.');
+      issues.push('wip-release auto-detects the file. No --notes flag needed.');
+    } else if (notes.length < 50) {
+      issues.push('Release notes are very short. Consider writing a RELEASE-NOTES file.');
+    }
+  }
+
+  // Check for changelog-style one-liners regardless of source
   const looksLikeChangelog = /^(fix|add|update|remove|bump|chore|refactor|docs?)[\s:]/i.test(notes);
-  const isTooShort = notes.length < 50;
-
-  if (looksLikeChangelog && isTooShort) {
-    console.warn('  ! Release notes look like a changelog entry, not a narrative.');
-    console.warn('    Explain what was built, why, and why it matters.');
-  } else if (isTooShort) {
-    console.warn('  ! Release notes are very short. Consider explaining what changed and why.');
+  if (looksLikeChangelog && notes.length < 100) {
+    issues.push('Notes look like a changelog entry, not a narrative.');
   }
+
+  return { ok: issues.length === 0, issues };
+}
+
+/**
+ * Check if a file was modified in commits since the last git tag.
+ */
+function fileModifiedSinceLastTag(repoPath, relativePath) {
+  try {
+    const lastTag = execFileSync('git', ['describe', '--tags', '--abbrev=0'],
+      { cwd: repoPath, encoding: 'utf8' }).trim();
+    const diff = execFileSync('git', ['diff', '--name-only', lastTag, 'HEAD'],
+      { cwd: repoPath, encoding: 'utf8' });
+    return diff.split('\n').some(f => f.trim() === relativePath);
+  } catch {
+    // No tags yet or git error ... skip check
+    return true;
+  }
+}
+
+/**
+ * Check that product docs were updated for this release.
+ * Returns { missing: string[], ok: boolean, skipped: boolean }.
+ * Only runs if ai/ directory structure exists.
+ */
+function checkProductDocs(repoPath) {
+  const missing = [];
+
+  // Skip repos without ai/ structure
+  const aiDir = join(repoPath, 'ai');
+  if (!existsSync(aiDir)) return { missing: [], ok: true, skipped: true };
+
+  // 1. Dev update: file from today (or last 3 days)
+  const devUpdatesDir = join(aiDir, 'dev-updates');
+  if (existsSync(devUpdatesDir)) {
+    const now = new Date();
+    const recentDates = [];
+    for (let i = 0; i < 3; i++) {
+      const d = new Date(now);
+      d.setDate(d.getDate() - i);
+      recentDates.push(d.toISOString().split('T')[0]);
+    }
+    const files = readdirSync(devUpdatesDir).filter(f => f.endsWith('.md'));
+    const hasRecent = files.some(f => recentDates.some(d => f.startsWith(d)));
+    if (!hasRecent) missing.push('ai/dev-updates/ (no dev update from last 3 days)');
+  }
+
+  // 2. Roadmap: modified since last tag
+  const roadmapPath = 'ai/product/plans-prds/roadmap.md';
+  if (existsSync(join(repoPath, roadmapPath))) {
+    if (!fileModifiedSinceLastTag(repoPath, roadmapPath)) {
+      missing.push('ai/product/plans-prds/roadmap.md (not updated since last release)');
+    }
+  }
+
+  // 3. Readme-first: modified since last tag
+  const readmeFirstPath = 'ai/product/readme-first-product.md';
+  if (existsSync(join(repoPath, readmeFirstPath))) {
+    if (!fileModifiedSinceLastTag(repoPath, readmeFirstPath)) {
+      missing.push('ai/product/readme-first-product.md (not updated since last release)');
+    }
+  }
+
+  return { missing, ok: missing.length === 0, skipped: false };
 }
 
 /**
@@ -410,7 +490,7 @@ function detectRepoSlug(repoPath) {
 /**
  * Run the full release pipeline.
  */
-export async function release({ repoPath, level, notes, dryRun, noPublish }) {
+export async function release({ repoPath, level, notes, notesSource, dryRun, noPublish, skipProductCheck }) {
   repoPath = repoPath || process.cwd();
   const currentVersion = detectCurrentVersion(repoPath);
   const newVersion = bumpSemver(currentVersion, level);
@@ -460,7 +540,75 @@ export async function release({ repoPath, level, notes, dryRun, noPublish }) {
     console.log(`  ✓ License compliance passed`);
   }
 
+  // 0.5. Product docs check
+  if (!skipProductCheck) {
+    const productCheck = checkProductDocs(repoPath);
+    if (!productCheck.skipped) {
+      if (productCheck.ok) {
+        console.log('  ✓ Product docs up to date');
+      } else {
+        const isMinorOrMajor = level === 'minor' || level === 'major';
+        const prefix = isMinorOrMajor ? '✗' : '!';
+        console.log(`  ${prefix} Product docs need attention:`);
+        for (const m of productCheck.missing) console.log(`    - ${m}`);
+        if (isMinorOrMajor) {
+          console.log('');
+          console.log('  Update product docs before a minor/major release.');
+          console.log('  Use --skip-product-check to override.');
+          console.log('');
+          return { currentVersion, newVersion, dryRun: false, failed: true };
+        }
+      }
+    }
+  }
+
+  // 0.75. Release notes quality gate
+  {
+    const notesCheck = checkReleaseNotes(notes, notesSource || 'flag', level);
+    if (notesCheck.ok) {
+      const sourceLabel = notesSource === 'file' ? 'from file' : notesSource === 'dev-update' ? 'from dev update' : 'from --notes';
+      console.log(`  ✓ Release notes OK (${sourceLabel})`);
+    } else {
+      const isMinorOrMajor = level === 'minor' || level === 'major';
+      const prefix = isMinorOrMajor ? '✗' : '!';
+      console.log(`  ${prefix} Release notes need attention:`);
+      for (const issue of notesCheck.issues) console.log(`    - ${issue}`);
+      if (isMinorOrMajor) {
+        console.log('');
+        console.log('  Minor/major releases require a RELEASE-NOTES file, not a --notes one-liner.');
+        console.log('  Write RELEASE-NOTES-v{version}.md (dashes not dots), commit it, then release.');
+        console.log('');
+        return { currentVersion, newVersion, dryRun: false, failed: true };
+      }
+    }
+  }
+
   if (dryRun) {
+    // Product docs check (dry-run)
+    if (!skipProductCheck) {
+      const productCheck = checkProductDocs(repoPath);
+      if (!productCheck.skipped) {
+        if (productCheck.ok) {
+          console.log('  [dry run] ✓ Product docs up to date');
+        } else {
+          const isMinorOrMajor = level === 'minor' || level === 'major';
+          console.log(`  [dry run] ${isMinorOrMajor ? '✗ Would BLOCK' : '! Would WARN'}: product docs need updates`);
+          for (const m of productCheck.missing) console.log(`    - ${m}`);
+        }
+      }
+    }
+    // Release notes check (dry-run)
+    {
+      const notesCheck = checkReleaseNotes(notes, notesSource || 'flag', level);
+      if (notesCheck.ok) {
+        const sourceLabel = notesSource === 'file' ? 'from file' : notesSource === 'dev-update' ? 'from dev update' : 'from --notes';
+        console.log(`  [dry run] ✓ Release notes OK (${sourceLabel})`);
+      } else {
+        const isMinorOrMajor = level === 'minor' || level === 'major';
+        console.log(`  [dry run] ${isMinorOrMajor ? '✗ Would BLOCK' : '! Would WARN'}: release notes need attention`);
+        for (const issue of notesCheck.issues) console.log(`    - ${issue}`);
+      }
+    }
     const hasSkill = existsSync(join(repoPath, 'SKILL.md'));
     console.log(`  [dry run] Would bump package.json to ${newVersion}`);
     if (hasSkill) console.log(`  [dry run] Would update SKILL.md version`);
@@ -526,8 +674,7 @@ export async function release({ repoPath, level, notes, dryRun, noPublish }) {
       console.log(`  ✗ GitHub Packages publish failed: ${e.message}`);
     }
 
-    // 8. GitHub release (warn if notes are thin)
-    warnIfNotesAreThin(notes);
+    // 8. GitHub release
     try {
       createGitHubRelease(repoPath, newVersion, notes, currentVersion);
       console.log(`  ✓ GitHub release v${newVersion} created`);
