@@ -1,24 +1,40 @@
 ---
-name: WIP AI DevOps Toolbox
-version: 1.9.1
+name: wip-ai-devops-toolbox
 description: Complete DevOps toolkit for AI-assisted software development. Release pipeline, license compliance, copyright enforcement, repo visibility guard, identity file protection, manifest reconciler, and best practices. All core tools are agent-callable via MCP.
-category: dev-tools
-capabilities:
-  - version-bump
-  - changelog-update
-  - npm-publish
-  - github-release
-  - license-scanning
-  - license-compliance
-  - copyright-enforcement
-  - repo-sync
-  - repo-visibility-guard
-  - identity-file-protection
-  - manifest-reconciliation
-  - mcp-server
+license: MIT
 interface: [cli, module, mcp, skill, hook, plugin]
-requires:
-  binaries: [git, npm, gh, node]
+metadata:
+  display-name: "WIP AI DevOps Toolbox"
+  version: "1.9.2".9.1"
+  homepage: "https://github.com/wipcomputer/wip-ai-devops-toolbox"
+  author: "Parker Todd Brooks"
+  category: dev-tools
+  capabilities:
+    - version-bump
+    - changelog-update
+    - npm-publish
+    - github-release
+    - license-scanning
+    - license-compliance
+    - copyright-enforcement
+    - repo-sync
+    - repo-visibility-guard
+    - identity-file-protection
+    - manifest-reconciliation
+    - mcp-server
+  requires:
+    bins: [git, npm, gh, node]
+  openclaw:
+    requires:
+      bins: [git, npm, gh, node]
+    install:
+      - id: node
+        kind: node
+        package: "@wipcomputer/wip-ai-devops-toolbox"
+        bins: [wip-release, wip-install, wip-repos, wip-license-hook, wip-license-guard, wip-file-guard, wip-repo-init, wip-readme-format]
+        label: "Install all tools via npm"
+    emoji: "🧰"
+compatibility: Requires git, npm, gh, node. Node.js 18+.
 ---
 
 # WIP AI DevOps Toolbox
@@ -574,26 +590,26 @@ Tools with MCP interfaces are agent-callable. Add to `.mcp.json`:
 
 ## Interface Coverage
 
-| # | Tool | CLI | Module | MCP | OC Plugin | Skill | CC Hook |
-|---|------|-----|--------|-----|-----------|-------|---------|
-| | **Setup & Onboarding** | | | | | | |
-| 1 | Universal Installer | Y | Y | | | Y | |
-| 2 | Dev Guide | | | | | | |
-| | **Infrastructure** | | | | | | |
-| 3 | LDM Dev Tools.app | | | | | | |
-| | **Release & Deploy** | | | | | | |
-| 4 | Release Pipeline | Y | Y | Y | | Y | |
-| 5 | Private-to-Public Sync | Y | | | | Y | |
-| 6 | Post-Merge Branch Naming | Y | | | | Y | |
-| | **License, Compliance, and Protection** | | | | | | |
-| 7 | Identity File Protection | Y | Y | | Y | Y | Y |
-| 8 | License Guard | Y | | | | | |
-| 9 | License Rug-Pull Detection | Y | Y | Y | | Y | |
-| | **Repo Management** | | | | | | |
-| 10 | Repo Visibility Guard | Y | Y | Y | Y | Y | Y |
-| 11 | Repo Manifest Reconciler | Y | Y | Y | | Y | |
-| 12 | Repo Init | Y | | | | Y | |
-| 13 | README Formatter | Y | | | | Y | |
+| # | Tool | CLI | Module | MCP | OC Plugin | Skill | CC Hook | ClawHub |
+|---|------|-----|--------|-----|-----------|-------|---------|---------|
+| | **Setup & Onboarding** | | | | | | | |
+| 1 | Universal Installer | Y | Y | | | Y | | |
+| 2 | Dev Guide | | | | | | | |
+| | **Infrastructure** | | | | | | | |
+| 3 | LDM Dev Tools.app | | | | | | | |
+| | **Release & Deploy** | | | | | | | |
+| 4 | Release Pipeline | Y | Y | Y | | Y | | Y |
+| 5 | Private-to-Public Sync | Y | | | | Y | | |
+| 6 | Post-Merge Branch Naming | Y | | | | Y | | |
+| | **License, Compliance, and Protection** | | | | | | | |
+| 7 | Identity File Protection | Y | Y | | Y | Y | Y | Y |
+| 8 | License Guard | Y | | | | | | |
+| 9 | License Rug-Pull Detection | Y | Y | Y | | Y | | Y |
+| | **Repo Management** | | | | | | | |
+| 10 | Repo Visibility Guard | Y | Y | Y | Y | Y | Y | Y |
+| 11 | Repo Manifest Reconciler | Y | Y | Y | | Y | | Y |
+| 12 | Repo Init | Y | | | | Y | | |
+| 13 | README Formatter | Y | | | | Y | | |
 
 ---
 

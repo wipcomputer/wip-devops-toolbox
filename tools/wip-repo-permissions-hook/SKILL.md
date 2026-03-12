@@ -1,9 +1,31 @@
 ---
-name: Repo Visibility Guard
-version: 1.0.0
+name: wip-repo-permissions-hook
 description: Repo visibility guard. Blocks repos from going public without a -private counterpart.
-author: Parker Todd Brooks
+license: MIT
 interface: [cli, module, mcp, hook, plugin]
+metadata:
+  display-name: "Repo Visibility Guard"
+  version: "1.0.0"
+  homepage: "https://github.com/wipcomputer/wip-ai-devops-toolbox"
+  author: "Parker Todd Brooks"
+  category: dev-tools
+  capabilities:
+    - visibility-check
+    - org-audit
+    - public-gate
+  requires:
+    bins: [node, gh]
+  openclaw:
+    requires:
+      bins: [node, gh]
+    install:
+      - id: node
+        kind: node
+        package: "@wipcomputer/wip-repo-permissions-hook"
+        bins: [wip-repo-permissions]
+        label: "Install via npm"
+    emoji: "🔒"
+compatibility: Requires node, gh (GitHub CLI). Node.js 18+.
 ---
 
 # Repo Permissions Hook

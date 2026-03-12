@@ -1,9 +1,31 @@
 ---
-name: README Formatter
-version: 1.0.0
-description: Reformat any repo's README to follow the WIP Computer standard
-category: repo-management
+name: wip-readme-format
+description: Reformat any repo's README to follow the WIP Computer standard.
+license: MIT
 interface: [cli, skill]
+metadata:
+  display-name: "README Formatter"
+  version: "1.0.0"
+  homepage: "https://github.com/wipcomputer/wip-ai-devops-toolbox"
+  author: "Parker Todd Brooks"
+  category: repo-management
+  capabilities:
+    - readme-generation
+    - readme-validation
+    - section-staging
+  requires:
+    bins: [node]
+  openclaw:
+    requires:
+      bins: [node]
+    install:
+      - id: node
+        kind: node
+        package: "@wipcomputer/wip-readme-format"
+        bins: [wip-readme-format]
+        label: "Install via npm"
+    emoji: "📝"
+compatibility: Requires node. Node.js 18+.
 ---
 
 # README Formatter

@@ -1,9 +1,30 @@
 ---
-name: Repo Init
-version: 1.0.0
-description: Scaffold the standard ai/ directory structure in any repo
-category: repo-management
+name: wip-repo-init
+description: Scaffold the standard ai/ directory structure in any repo.
+license: MIT
 interface: [cli, skill]
+metadata:
+  display-name: "Repo Init"
+  version: "1.0.0"
+  homepage: "https://github.com/wipcomputer/wip-ai-devops-toolbox"
+  author: "Parker Todd Brooks"
+  category: repo-management
+  capabilities:
+    - scaffold-ai-dir
+    - template-copy
+  requires:
+    bins: [node]
+  openclaw:
+    requires:
+      bins: [node]
+    install:
+      - id: node
+        kind: node
+        package: "@wipcomputer/wip-repo-init"
+        bins: [wip-repo-init]
+        label: "Install via npm"
+    emoji: "📁"
+compatibility: Requires node. Node.js 18+.
 ---
 
 # Repo Init

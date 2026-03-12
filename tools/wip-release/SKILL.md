@@ -1,9 +1,13 @@
 ---
-name: Release Pipeline
-version: 1.2.4
+name: wip-release
 description: One-command release pipeline. Bumps version, updates changelog + SKILL.md, publishes to npm + GitHub.
-homepage: https://github.com/wipcomputer/wip-release
+license: MIT
+interface: [cli, module, mcp]
 metadata:
+  display-name: "Release Pipeline"
+  version: "1.2.4"
+  homepage: "https://github.com/wipcomputer/wip-release"
+  author: "Parker Todd Brooks"
   category: dev-tools
   capabilities:
     - version-bump
@@ -11,22 +15,25 @@ metadata:
     - skill-sync
     - npm-publish
     - github-release
-  dependencies: []
-  interface: [cli, module, mcp]
   requires:
-    binaries: [git, npm, gh, op, clawhub]
+    bins: [git, npm, gh, op, clawhub]
     secrets:
       - path: ~/.openclaw/secrets/op-sa-token
         description: 1Password service account token
       - vault: Agent Secrets
         item: npm Token
         description: npm publish token
-openclaw:
-  emoji: "🚀"
-  install:
-    env: []
-author:
-  name: Parker Todd Brooks
+  openclaw:
+    requires:
+      bins: [git, npm, gh, op]
+    install:
+      - id: node
+        kind: node
+        package: "@wipcomputer/wip-release"
+        bins: [wip-release]
+        label: "Install via npm"
+    emoji: "🚀"
+compatibility: Requires git, npm, gh, op (1Password CLI). Node.js 18+.
 ---
 
 # wip-release

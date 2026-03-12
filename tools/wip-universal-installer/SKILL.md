@@ -1,9 +1,13 @@
 ---
-name: Universal Installer
-version: 2.1.5
-description: The Universal Interface specification for agent-native software. Teaches your AI how to build repos with every interface.
-homepage: https://github.com/wipcomputer/wip-universal-installer
+name: wip-universal-installer
+description: Reference installer for agent-native software. Scans a repo, detects which interfaces it exposes, and installs them all.
+license: MIT
+interface: [cli, module, skill]
 metadata:
+  display-name: "Universal Installer"
+  version: "2.1.5"
+  homepage: "https://github.com/wipcomputer/wip-universal-installer"
+  author: "Parker Todd Brooks"
   category: dev-tools
   capabilities:
     - detect-interfaces
@@ -11,14 +15,19 @@ metadata:
     - install-mcp
     - install-openclaw-plugin
     - install-claude-code-hook
-  dependencies: []
-  interface: CLI
-openclaw:
-  emoji: "🔌"
-  install:
-    env: []
-author:
-  name: Parker Todd Brooks
+  requires:
+    bins: [node, npm, git]
+  openclaw:
+    requires:
+      bins: [node, npm, git]
+    install:
+      - id: node
+        kind: node
+        package: "@wipcomputer/universal-installer"
+        bins: [wip-install]
+        label: "Install via npm"
+    emoji: "🔌"
+compatibility: Requires git, npm, node. Node.js 18+.
 ---
 
 # wip-universal-installer

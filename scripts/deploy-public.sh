@@ -164,6 +164,53 @@ if [[ -n "$VERSION" ]]; then
   fi
 fi
 
+# ── npm publish from public repo (#100) ──
+# After syncing code and release, publish to npm from the public clone.
+# Only if package.json exists and private !== true.
+
+if [[ -n "${VERSION:-}" ]]; then
+  # Re-clone public for npm publish (the previous tmpdir might be gone)
+  NPM_TMPDIR=$(mktemp -d)
+  gh repo clone "$PUBLIC_REPO" "$NPM_TMPDIR/public" -- --depth 1 2>/dev/null
+
+  if [[ -f "$NPM_TMPDIR/public/package.json" ]]; then
+    IS_PRIVATE=$(cd "$NPM_TMPDIR/public" && node -p "require('./package.json').private || false" 2>/dev/null)
+    if [[ "$IS_PRIVATE" != "true" ]]; then
+      echo "Publishing to npm from public repo..."
+      NPM_TOKEN=$(OP_SERVICE_ACCOUNT_TOKEN=$(cat ~/.openclaw/secrets/op-sa-token) \
+        op item get "npm Token" --vault "Agent Secrets" --fields label=password --reveal 2>/dev/null || echo "")
+      if [[ -n "$NPM_TOKEN" ]]; then
+        cd "$NPM_TMPDIR/public"
+        echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > .npmrc
+        npm publish --access public 2>/dev/null && echo "  ✓ Published to npm" || echo "  ✗ npm publish failed (non-fatal)"
+        rm -f .npmrc
+
+        # For toolbox repos: publish each sub-tool
+        if [[ -d "tools" ]]; then
+          for TOOL_DIR in tools/*/; do
+            if [[ -f "${TOOL_DIR}package.json" ]]; then
+              TOOL_PRIVATE=$(node -p "require('./${TOOL_DIR}package.json').private || false" 2>/dev/null)
+              if [[ "$TOOL_PRIVATE" != "true" ]]; then
+                TOOL_NAME=$(node -p "require('./${TOOL_DIR}package.json').name" 2>/dev/null)
+                echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > "${TOOL_DIR}.npmrc"
+                (cd "$TOOL_DIR" && npm publish --access public 2>/dev/null) && echo "  ✓ Published $TOOL_NAME to npm" || echo "  ✗ npm publish failed for $TOOL_NAME (non-fatal)"
+                rm -f "${TOOL_DIR}.npmrc"
+              fi
+            fi
+          done
+        fi
+
+        cd - > /dev/null
+      else
+        echo "  ! npm Token not found in 1Password. Skipping npm publish."
+      fi
+    else
+      echo "  - package.json has private:true. Skipping npm publish."
+    fi
+  fi
+  rm -rf "$NPM_TMPDIR"
+fi
+
 echo "Done. Public repo updated."
 echo "  PR: $PR_URL"
 echo "  Commit: $COMMIT_MSG (from $COMMIT_HASH)"
