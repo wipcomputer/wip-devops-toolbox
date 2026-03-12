@@ -1,10 +1,13 @@
 ---
-name: Repo Manifest Reconciler
-version: 0.1.0
+name: wip-repos
 description: Repo manifest reconciler. Makes repos-manifest.json the single source of truth for repo organization.
-author: Parker Todd Brooks
+license: MIT
 interface: [cli, module, mcp]
 metadata:
+  display-name: "Repo Manifest Reconciler"
+  version: "0.1.0"
+  homepage: "https://github.com/wipcomputer/wip-ai-devops-toolbox"
+  author: "Parker Todd Brooks"
   category: dev-tools
   capabilities:
     - manifest-check
@@ -12,6 +15,19 @@ metadata:
     - repo-add
     - repo-move
     - tree-generation
+  requires:
+    bins: [node, git]
+  openclaw:
+    requires:
+      bins: [node, git]
+    install:
+      - id: node
+        kind: node
+        package: "@wipcomputer/wip-repos"
+        bins: [wip-repos]
+        label: "Install via npm"
+    emoji: "📂"
+compatibility: Requires git, node. Node.js 18+.
 ---
 
 # wip-repos

@@ -1,14 +1,24 @@
 ---
-name: Private-to-Public Sync
-version: 1.3.0
+name: deploy-public
 description: Private-to-public repo sync. Copies everything except ai/ to the public mirror. Creates PR, merges, syncs releases.
-author: Parker Todd Brooks
-interface: [cli]
+license: MIT
+interface: [cli, skill]
 metadata:
+  display-name: "Private-to-Public Sync"
+  version: "1.3.0"
+  homepage: "https://github.com/wipcomputer/wip-ai-devops-toolbox"
+  author: "Parker Todd Brooks"
   category: dev-tools
   capabilities:
     - repo-sync
     - release-sync
+  requires:
+    bins: [git, gh, bash]
+  openclaw:
+    requires:
+      bins: [git, gh, bash]
+    emoji: "🚢"
+compatibility: Requires git, gh (GitHub CLI), bash.
 ---
 
 # deploy-public

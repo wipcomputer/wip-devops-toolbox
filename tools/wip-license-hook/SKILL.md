@@ -1,11 +1,32 @@
 ---
-name: License Rug-Pull Detection
-description: License rug-pull detection. Scans dependencies and forks for license changes, gates upstream merges, maintains a license ledger, and generates a public compliance dashboard. Use when checking dependency licenses, before merging upstream, or for daily license health scans.
-version: 1.0.0
-interface: [cli, mcp]
+name: wip-license-hook
+description: License rug-pull detection. Scans dependencies and forks for license changes, gates upstream merges, maintains a license ledger, and generates a public compliance dashboard.
+license: MIT
+interface: [cli, module, mcp]
 metadata:
+  display-name: "License Rug-Pull Detection"
+  version: "1.0.0"
+  homepage: "https://github.com/wipcomputer/wip-ai-devops-toolbox"
+  author: "Parker Todd Brooks"
+  category: dev-tools
+  capabilities:
+    - license-scanning
+    - rug-pull-detection
+    - compliance-gating
+    - license-ledger
+  requires:
+    bins: [node, git, npm]
   openclaw:
+    requires:
+      bins: [node, git, npm]
+    install:
+      - id: node
+        kind: node
+        package: "@wipcomputer/wip-license-hook"
+        bins: [wip-license-hook]
+        label: "Install via npm"
     emoji: "🛡️"
+compatibility: Requires git, npm, node. Node.js 18+.
 ---
 
 # wip-license-hook

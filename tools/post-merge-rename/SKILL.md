@@ -1,14 +1,24 @@
 ---
-name: Post-Merge Branch Naming
-version: 1.3.0
+name: post-merge-rename
 description: Post-merge branch renaming. Appends --merged-YYYY-MM-DD to preserve history.
-author: Parker Todd Brooks
-interface: [cli]
+license: MIT
+interface: [cli, skill]
 metadata:
+  display-name: "Post-Merge Branch Naming"
+  version: "1.3.0"
+  homepage: "https://github.com/wipcomputer/wip-ai-devops-toolbox"
+  author: "Parker Todd Brooks"
   category: dev-tools
   capabilities:
     - branch-rename
     - history-preservation
+  requires:
+    bins: [git, bash]
+  openclaw:
+    requires:
+      bins: [git, bash]
+    emoji: "🏷️"
+compatibility: Requires git, bash.
 ---
 
 # post-merge-rename

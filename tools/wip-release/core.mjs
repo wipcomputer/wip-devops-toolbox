@@ -68,10 +68,10 @@ export function syncSkillVersion(repoPath, newVersion) {
     }
   }
 
-  // Match version: X.Y.Z in YAML frontmatter (between --- markers)
+  // Match version: X.Y.Z or version: "X.Y.Z" in YAML frontmatter (between --- markers)
   const updated = content.replace(
-    /^(---[\s\S]*?)(version:\s*)\S+([\s\S]*?---)/,
-    `$1$2${newVersion}$3`
+    /^(---[\s\S]*?)(version:\s*)"?\S+?"?([\s\S]*?---)/,
+    `$1$2"${newVersion}"$3`
   );
 
   if (updated === content) return false;
@@ -469,8 +469,18 @@ function getNpmToken() {
 }
 
 function detectSkillSlug(repoPath) {
-  // Slug must be lowercase and url-safe. Use directory name, not SKILL.md name
-  // (SKILL.md name can be display-formatted like "WIP.release").
+  // Read the name field from SKILL.md frontmatter (agentskills.io spec: lowercase-hyphen slug).
+  // Falls back to directory name.
+  const skillPath = join(repoPath, 'SKILL.md');
+  if (existsSync(skillPath)) {
+    const content = readFileSync(skillPath, 'utf8');
+    const nameMatch = content.match(/^---[\s\S]*?\nname:\s*(.+?)\n/);
+    if (nameMatch) {
+      const name = nameMatch[1].trim().replace(/^["']|["']$/g, '');
+      // Only use if it looks like a slug (lowercase, hyphens)
+      if (/^[a-z][a-z0-9-]*$/.test(name)) return name;
+    }
+  }
   return basename(repoPath).toLowerCase();
 }
 
@@ -657,40 +667,90 @@ export async function release({ repoPath, level, notes, notesSource, dryRun, noP
     console.log(`  ! Push failed (maybe branch protection). Push manually.`);
   }
 
+  // Distribution results collector (#104)
+  const distResults = [];
+
   if (!noPublish) {
     // 6. npm publish
     try {
       publishNpm(repoPath);
+      const pkg = JSON.parse(readFileSync(join(repoPath, 'package.json'), 'utf8'));
+      distResults.push({ target: 'npm', status: 'ok', detail: `${pkg.name}@${newVersion}` });
       console.log(`  ✓ Published to npm`);
     } catch (e) {
+      distResults.push({ target: 'npm', status: 'failed', detail: e.message });
       console.log(`  ✗ npm publish failed: ${e.message}`);
     }
 
     // 7. GitHub Packages
     try {
       publishGitHubPackages(repoPath);
+      distResults.push({ target: 'GitHub Packages', status: 'ok', detail: `${newVersion}` });
       console.log(`  ✓ Published to GitHub Packages`);
     } catch (e) {
+      distResults.push({ target: 'GitHub Packages', status: 'failed', detail: e.message });
       console.log(`  ✗ GitHub Packages publish failed: ${e.message}`);
     }
 
     // 8. GitHub release
     try {
       createGitHubRelease(repoPath, newVersion, notes, currentVersion);
+      distResults.push({ target: 'GitHub', status: 'ok', detail: `v${newVersion}` });
       console.log(`  ✓ GitHub release v${newVersion} created`);
     } catch (e) {
+      distResults.push({ target: 'GitHub', status: 'failed', detail: e.message });
       console.log(`  ✗ GitHub release failed: ${e.message}`);
     }
 
-    // 9. ClawHub skill publish
-    const skillPath = join(repoPath, 'SKILL.md');
-    if (existsSync(skillPath)) {
+    // 9. ClawHub skill publish (root + sub-tools)
+    const rootSkill = join(repoPath, 'SKILL.md');
+    const toolsDir = join(repoPath, 'tools');
+
+    // Publish root SKILL.md
+    if (existsSync(rootSkill)) {
       try {
         publishClawHub(repoPath, newVersion, notes);
-        console.log(`  ✓ Published to ClawHub`);
+        const slug = detectSkillSlug(repoPath);
+        distResults.push({ target: `ClawHub`, status: 'ok', detail: `${slug}@${newVersion}` });
+        console.log(`  ✓ Published to ClawHub: ${slug}`);
       } catch (e) {
+        distResults.push({ target: 'ClawHub (root)', status: 'failed', detail: e.message });
         console.log(`  ✗ ClawHub publish failed: ${e.message}`);
       }
+    }
+
+    // Publish each sub-tool SKILL.md (#97)
+    if (existsSync(toolsDir)) {
+      for (const tool of readdirSync(toolsDir)) {
+        const toolPath = join(toolsDir, tool);
+        const toolSkill = join(toolPath, 'SKILL.md');
+        if (existsSync(toolSkill)) {
+          try {
+            publishClawHub(toolPath, newVersion, notes);
+            const slug = detectSkillSlug(toolPath);
+            distResults.push({ target: `ClawHub`, status: 'ok', detail: `${slug}@${newVersion}` });
+            console.log(`  ✓ Published to ClawHub: ${slug}`);
+          } catch (e) {
+            const slug = detectSkillSlug(toolPath);
+            distResults.push({ target: `ClawHub (${slug})`, status: 'failed', detail: e.message });
+            console.log(`  ✗ ClawHub publish failed for ${slug}: ${e.message}`);
+          }
+        }
+      }
+    }
+  }
+
+  // Distribution summary (#104)
+  if (distResults.length > 0) {
+    console.log('');
+    console.log('  Distribution:');
+    for (const r of distResults) {
+      const icon = r.status === 'ok' ? '✓' : '✗';
+      console.log(`    ${icon} ${r.target}: ${r.detail}`);
+    }
+    const failed = distResults.filter(r => r.status !== 'ok');
+    if (failed.length > 0) {
+      console.log(`\n  ! ${failed.length} of ${distResults.length} target(s) failed.`);
     }
   }
 

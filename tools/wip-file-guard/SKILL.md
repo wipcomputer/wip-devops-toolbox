@@ -1,24 +1,31 @@
 ---
-name: Identity File Protection
-version: 1.0.1
+name: wip-file-guard
 description: Hook that blocks destructive edits to protected identity files. For Claude Code CLI and OpenClaw.
-homepage: https://github.com/wipcomputer/wip-file-guard
+license: MIT
+interface: [cli, module, hook, plugin, skill]
 metadata:
+  display-name: "Identity File Protection"
+  version: "1.0.1"
+  homepage: "https://github.com/wipcomputer/wip-file-guard"
+  author: "Parker Todd Brooks"
   category: dev-tools
   capabilities:
     - file-protection
     - edit-blocking
     - identity-guard
-  dependencies: []
-  interface: Claude Code Hook
   requires:
-    binaries: [node]
-openclaw:
-  emoji: "🛡️"
-  install:
-    env: []
-author:
-  name: Parker Todd Brooks
+    bins: [node]
+  openclaw:
+    requires:
+      bins: [node]
+    install:
+      - id: node
+        kind: node
+        package: "@wipcomputer/wip-file-guard"
+        bins: [wip-file-guard]
+        label: "Install via npm"
+    emoji: "🛡️"
+compatibility: Requires node. Node.js 18+.
 ---
 
 # wip-file-guard

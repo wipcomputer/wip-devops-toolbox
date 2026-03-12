@@ -7,7 +7,7 @@
 // Maintains a registry at ~/.ldm/extensions/registry.json.
 
 import { execSync } from 'node:child_process';
-import { existsSync, readFileSync, writeFileSync, cpSync, mkdirSync, lstatSync, readlinkSync, unlinkSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync, cpSync, mkdirSync, lstatSync, readlinkSync, unlinkSync, chmodSync } from 'node:fs';
 import { join, basename, resolve } from 'node:path';
 import { detectInterfaces, describeInterfaces, detectInterfacesJSON, detectToolbox } from './detect.mjs';
 
@@ -29,6 +29,16 @@ function log(msg) { if (!JSON_OUTPUT) console.log(`  ${msg}`); }
 function ok(msg) { if (!JSON_OUTPUT) console.log(`  ✓ ${msg}`); }
 function skip(msg) { if (!JSON_OUTPUT) console.log(`  - ${msg}`); }
 function fail(msg) { if (!JSON_OUTPUT) console.error(`  ✗ ${msg}`); }
+
+function ensureBinExecutable(binNames) {
+  try {
+    const npmPrefix = execSync('npm config get prefix', { encoding: 'utf8' }).trim();
+    for (const bin of binNames) {
+      const binPath = join(npmPrefix, 'bin', bin);
+      try { chmodSync(binPath, 0o755); } catch {}
+    }
+  } catch {}
+}
 
 function readJSON(path) {
   try {
@@ -87,8 +97,21 @@ function installCLI(repoPath, door) {
     ok(`CLI: would install ${binNames.join(', ')} globally (dry run)`);
     return true;
   }
+
+  // If the package has a build script and dist/ is missing, build first
+  if (pkg?.scripts?.build && !existsSync(join(repoPath, 'dist'))) {
+    try {
+      log(`CLI: building ${binNames.join(', ')} (TypeScript)...`);
+      execSync('npm run build', { cwd: repoPath, stdio: 'pipe' });
+    } catch (e) {
+      fail(`CLI: build failed. ${e.stderr?.toString()?.slice(0, 200) || e.message}`);
+    }
+  }
+
   try {
     execSync('npm install -g .', { cwd: repoPath, stdio: 'pipe' });
+    // Safety net: ensure bin files are executable (git doesn't always preserve +x)
+    ensureBinExecutable(binNames);
     ok(`CLI: ${binNames.join(', ')} installed globally`);
     return true;
   } catch (e) {
@@ -110,12 +133,14 @@ function installCLI(repoPath, door) {
       }
       try {
         execSync('npm install -g .', { cwd: repoPath, stdio: 'pipe' });
+        ensureBinExecutable(binNames);
         ok(`CLI: ${binNames.join(', ')} installed globally (replaced stale symlink)`);
         return true;
       } catch {}
     }
     try {
       execSync('npm link', { cwd: repoPath, stdio: 'pipe' });
+      ensureBinExecutable(binNames);
       ok(`CLI: linked globally via npm link`);
       return true;
     } catch {
@@ -519,22 +544,33 @@ async function main() {
   let repoPath;
 
   if (target.startsWith('http') || target.startsWith('git@') || target.match(/^[\w-]+\/[\w.-]+$/)) {
-    const url = target.match(/^[\w-]+\/[\w.-]+$/)
+    const isShorthand = target.match(/^[\w-]+\/[\w.-]+$/);
+    const httpsUrl = isShorthand
       ? `https://github.com/${target}.git`
       : target;
-    const repoName = basename(url).replace('.git', '');
+    const sshUrl = isShorthand
+      ? `git@github.com:${target}.git`
+      : target.replace(/^https:\/\/github\.com\//, 'git@github.com:');
+    const repoName = basename(httpsUrl).replace('.git', '');
     repoPath = join('/tmp', `wip-install-${repoName}`);
 
     log('');
-    log(`Cloning ${url}...`);
+    log(`Cloning ${httpsUrl}...`);
     try {
       if (existsSync(repoPath)) {
         execSync(`rm -rf "${repoPath}"`);
       }
-      execSync(`git clone "${url}" "${repoPath}"`, { stdio: 'pipe' });
+      try {
+        execSync(`git clone "${httpsUrl}" "${repoPath}"`, { stdio: 'pipe' });
+      } catch {
+        // HTTPS failed (private repo or no auth). Fall back to SSH.
+        log(`HTTPS clone failed. Trying SSH...`);
+        if (existsSync(repoPath)) execSync(`rm -rf "${repoPath}"`);
+        execSync(`git clone "${sshUrl}" "${repoPath}"`, { stdio: 'pipe' });
+      }
       ok(`Cloned to ${repoPath}`);
     } catch (e) {
-      fail(`Clone failed: ${e.message}`);
+      fail(`Clone failed (tried HTTPS + SSH): ${e.message}`);
       process.exit(1);
     }
   } else {
