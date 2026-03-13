@@ -47,7 +47,7 @@ As Andrej Karpathy [said](https://x.com/karpathy/status/2024583544157458452): *"
 - Detects what a repo supports and deploys it all. Toolbox mode walks every sub-tool automatically
 - **Interfaces:** CLI, Module, Skill
 - *Stable*
-- [Read more about Universal Installer](tools/wip-universal-installer/README.md)
+- [Read more about Universal Installer](https://github.com/wipcomputer/wip-ldm-os/blob/main/docs/universal-installer.md)
 
 **Dev Guide**
 - Your team's conventions, baked in. Release process, repo structure, branch protection, the `ai/` folder standard.
@@ -166,6 +166,11 @@ As Andrej Karpathy [said](https://x.com/karpathy/status/2024583544157458452): *"
 - [Technical Documentation](TECHNICAL.md) ... Source code locations, build steps, development setup, architecture details
 - [Universal Interface Spec](tools/wip-universal-installer/SPEC.md) ... The six interfaces every agent-native tool can ship
 - [Dev Guide](DEV-GUIDE-GENERAL-PUBLIC.md) ... Best practices for AI-assisted development
+
+## Part of LDM OS
+
+AI DevOps Toolbox installs into [LDM OS](https://github.com/wipcomputer/wip-ldm-os), the local runtime for AI agents.
+Run `ldm install` to see other components you can add.
 
 ## License
 
