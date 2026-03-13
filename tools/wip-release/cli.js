@@ -25,14 +25,21 @@ const notesFilePath = flag('notes-file');
 let notes = flag('notes');
 let notesSource = notes ? 'flag' : 'none'; // track where notes came from
 
-// Auto-detect RELEASE-NOTES-v{version}.md if no --notes or --notes-file provided.
-// Also supports explicit --notes-file for custom paths.
+// Release notes priority (highest wins):
+//   1. --notes-file=path          Explicit file path (always wins)
+//   2. RELEASE-NOTES-v{ver}.md    In repo root (always wins over --notes flag)
+//   3. ai/dev-updates/YYYY-MM-DD* Today's dev update (wins over --notes flag if longer)
+//   4. --notes="text"             Flag fallback (only if nothing better exists)
+//
+// Rule: written release notes on disk ALWAYS beat a CLI one-liner.
+// The --notes flag is a fallback, not an override.
 {
   const { readFileSync, existsSync } = await import('node:fs');
   const { resolve, join } = await import('node:path');
+  const flagNotes = notes; // save original flag value for fallback
 
   if (notesFilePath) {
-    // Explicit --notes-file
+    // 1. Explicit --notes-file (highest priority)
     const resolved = resolve(notesFilePath);
     if (!existsSync(resolved)) {
       console.error(`  ✗ Notes file not found: ${resolved}`);
@@ -40,8 +47,8 @@ let notesSource = notes ? 'flag' : 'none'; // track where notes came from
     }
     notes = readFileSync(resolved, 'utf8').trim();
     notesSource = 'file';
-  } else if (!notes && level) {
-    // Auto-detect: compute the next version and look for RELEASE-NOTES-v{version}.md
+  } else if (level) {
+    // 2. Auto-detect RELEASE-NOTES-v{version}.md (ALWAYS checks, even if --notes provided)
     try {
       const { detectCurrentVersion, bumpSemver } = await import('./core.mjs');
       const cwd = process.cwd();
@@ -50,15 +57,19 @@ let notesSource = notes ? 'flag' : 'none'; // track where notes came from
       const dashed = newVersion.replace(/\./g, '-');
       const autoFile = join(cwd, `RELEASE-NOTES-v${dashed}.md`);
       if (existsSync(autoFile)) {
-        notes = readFileSync(autoFile, 'utf8').trim();
+        const fileContent = readFileSync(autoFile, 'utf8').trim();
+        if (flagNotes && flagNotes !== fileContent) {
+          console.log(`  ! --notes flag ignored: RELEASE-NOTES-v${dashed}.md takes priority`);
+        }
+        notes = fileContent;
         notesSource = 'file';
         console.log(`  ✓ Found RELEASE-NOTES-v${dashed}.md`);
       }
     } catch {}
   }
 
-  // Auto-detect dev update from ai/dev-updates/ if notes are missing or thin
-  if (level && (!notes || notes.length < 100)) {
+  // 3. Auto-detect dev update from ai/dev-updates/ (wins over --notes flag if longer)
+  if (level && (!notes || (notesSource === 'flag' && notes.length < 200))) {
     try {
       const { readdirSync } = await import('node:fs');
       const devUpdatesDir = join(process.cwd(), 'ai', 'dev-updates');
@@ -73,6 +84,9 @@ let notesSource = notes ? 'flag' : 'none'; // track where notes came from
           const devUpdatePath = join(devUpdatesDir, todayFiles[0]);
           const devUpdateContent = readFileSync(devUpdatePath, 'utf8').trim();
           if (devUpdateContent.length > (notes || '').length) {
+            if (flagNotes) {
+              console.log(`  ! --notes flag ignored: dev update takes priority`);
+            }
             notes = devUpdateContent;
             notesSource = 'dev-update';
             console.log(`  ✓ Found dev update: ai/dev-updates/${todayFiles[0]}`);
@@ -104,12 +118,12 @@ Flags:
   --skip-stale-check       Skip stale remote branch check
   --skip-worktree-check    Skip worktree guard (allow release from worktree)
 
-Release notes:
-  Auto-detects notes from three sources (first match wins):
-  1. --notes-file=path          Explicit file path
-  2. RELEASE-NOTES-v{ver}.md    In repo root (e.g. RELEASE-NOTES-v1-7-4.md)
-  3. ai/dev-updates/YYYY-MM-DD* Today's dev update files (most recent first)
-  Write dev updates as you work. wip-release picks them up automatically.
+Release notes (highest priority wins, files ALWAYS beat --notes flag):
+  1. --notes-file=path          Explicit file path (always wins)
+  2. RELEASE-NOTES-v{ver}.md    In repo root (wins over --notes)
+  3. ai/dev-updates/YYYY-MM-DD* Today's dev update (wins over --notes if longer)
+  4. --notes="text"             Fallback only (use for repos without release notes files)
+  Written notes on disk always take priority over a CLI one-liner.
 
 Pipeline:
   1. Bump package.json version
