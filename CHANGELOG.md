@@ -32,6 +32,10 @@
 
 
 
+## 1.9.18 (2026-03-14)
+
+Rewrite SKILL.md install flow to use ldm install. Conversational AI-guided pattern matching Memory Crystal.
+
 ## 1.9.17 (2026-03-14)
 
 Add wip-branch-guard: PreToolUse hook that blocks all writes on main branch. Resolves repo from file path so it works from any CWD. Forces agents to branch or worktree before editing.

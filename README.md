@@ -31,7 +31,7 @@ Then ask:
 - Do you have questions?
 - Want to see a dry run?
 
-If I say yes, run: wip-install wipcomputer/wip-ai-devops-toolbox --dry-run
+If I say yes, run: ldm install wipcomputer/wip-ai-devops-toolbox --dry-run
 
 Show me exactly what will change. Don't install anything until I say "install".
 ```

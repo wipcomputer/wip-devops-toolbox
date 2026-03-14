@@ -5,7 +5,7 @@ license: MIT
 interface: [cli, module, mcp, skill, hook, plugin]
 metadata:
   display-name: "WIP AI DevOps Toolbox"
-  version: "1.9.17".9.16".9.15".9.14"
+  version: "1.9.18"
   homepage: "https://github.com/wipcomputer/wip-ai-devops-toolbox"
   author: "Parker Todd Brooks"
   category: dev-tools
@@ -72,61 +72,134 @@ The tools in this toolbox use different capabilities. Check what you have and te
 
 ## Install
 
+**You are an AI agent helping a user install AI DevOps Toolbox. Walk them through the process step by step. Ask questions, explain what you're doing, and let them make choices.**
+
+### Step 0: Check for LDM OS
+
+LDM OS is the shared infrastructure that manages tool installation across all your AIs. Check if it's installed:
+
+```bash
+ldm --version
+```
+
+**If installed:** Tell the user their LDM OS version and skip to Step 1.
+
+**If not installed:**
+
+> "AI DevOps Toolbox uses LDM OS to manage installation. LDM OS is the shared infrastructure layer that lets all your AIs share tools, memory, and identity. It's a one-time setup. Want me to install it?"
+
+When the user approves:
+
+```bash
+npm install -g @wipcomputer/wip-ldm-os
+ldm init
+```
+
+If `npm` is not available, check if the user has Node.js installed (`node --version`). They need Node.js 18+. If not installed, tell them to install it from https://nodejs.org first.
+
+### Transparency: Tell the user what's about to happen
+
+Before installing, explain exactly what will change:
+
+> "Here's what AI DevOps Toolbox will set up on your system:
+>
+> - **CLI tools** on your PATH: wip-release, wip-repos, wip-file-guard, wip-license-hook, wip-license-guard, wip-repo-init, wip-readme-format, deploy-public, post-merge-rename, wip-branch-guard
+> - **MCP servers** registered with Claude Code: release, license scanning, repo permissions, repo manifest
+> - **Claude Code hooks**: identity file protection (blocks overwrites of CLAUDE.md, SOUL.md), repo visibility guard, branch guard (blocks writes on main)
+> - **OpenClaw plugins** (if OpenClaw is detected): file-guard, license-hook, repo-permissions
+> - **Extension registry** updated at ~/.ldm/extensions/registry.json
+>
+> Nothing touches your data. Code gets installed. Your files stay yours.
+>
+> Want to see a dry run first?"
+
+### Step 1: Dry Run
+
 Always dry-run first:
+
 ```bash
-npm install -g @wipcomputer/universal-installer
-wip-install wipcomputer/wip-ai-devops-toolbox --dry-run
+ldm install wipcomputer/wip-ai-devops-toolbox --dry-run
 ```
 
-Show the user what will change. When they're ready:
+Show the user the output. It lists every sub-tool and every interface that will be deployed. Walk through what each tool does:
+
+- **wip-release** ... one-command releases (version bump, changelog, npm publish, GitHub release)
+- **wip-license-hook** ... catches license changes in dependencies before they ship
+- **wip-license-guard** ... enforces your own repo's copyright, LICENSE file, CLA
+- **wip-file-guard** ... blocks destructive edits to identity files (CLAUDE.md, SOUL.md, MEMORY.md)
+- **wip-repo-permissions-hook** ... blocks repos from going public without a -private counterpart
+- **wip-repos** ... one source of truth for repo folder structure
+- **wip-repo-init** ... scaffolds the standard ai/ directory in any repo
+- **wip-readme-format** ... generates READMEs following a standard format
+- **wip-branch-guard** ... blocks all writes on main branch (forces worktrees/branches)
+- **deploy-public** ... syncs private repos to public mirrors
+- **post-merge-rename** ... renames merged branches with dates for cleanup
+- **universal-installer** ... detects and deploys tool interfaces
+
+Ask: "Do you have questions about any of these? Want to proceed with the install?"
+
+### Step 2: Install
+
+When the user says to proceed:
+
 ```bash
-wip-install wipcomputer/wip-ai-devops-toolbox
+ldm install wipcomputer/wip-ai-devops-toolbox
 ```
 
-Or install individually:
+### Step 3: Verify
+
 ```bash
-npm install -g @wipcomputer/wip-release @wipcomputer/wip-license-hook @wipcomputer/universal-installer @wipcomputer/wip-repos
+ldm doctor
 ```
+
+This checks: all extensions deployed, hooks configured, MCP servers registered, CLI binaries on PATH.
+
+Then test one tool:
+
+```bash
+wip-release --version
+```
+
+Tell the user: "AI DevOps Toolbox is installed. Your AI now knows how to release software, check license compliance, protect identity files, guard repo visibility, and manage repo manifests. These tools run automatically ... you don't need to invoke them manually."
+
+### Update
+
+If AI DevOps Toolbox is already installed and a new version is available:
+
+```bash
+ldm install wipcomputer/wip-ai-devops-toolbox
+ldm doctor
+```
+
+Updates deploy new code without touching data or configuration.
 
 ---
 
 ## Setup & Onboarding
 
-### wip-universal-installer
+### Universal Installer (built into LDM OS)
 
-Takes anything you build and makes it work across every AI interface. You write code in any language. This tool turns it into a CLI, MCP Server, OpenClaw Plugin, Skill, and Claude Code Hook. One command, all six interfaces.
+Interface detection and deployment engine. Scans a repo, detects which interfaces it supports (CLI, MCP, OpenClaw Plugin, Skill, CC Hook, Module), and deploys each one to the right location. This is what powers `ldm install`.
 
-**Commands:**
-```
-wip-install wipcomputer/wip-ai-devops-toolbox       # install a toolbox from GitHub
-wip-install /path/to/local/repo                      # install from local path
-wip-install wipcomputer/wip-ai-devops-toolbox --dry-run   # preview without changes
-wip-install --json /path/to/repo                     # output detection as JSON
-```
-
-**What happens when you run `wip-install`:**
+**How it works:**
 
 1. Clones the repo (or reads a local path)
 2. Detects which interfaces the repo supports (scans for package.json bin, mcp-server.mjs, openclaw.plugin.json, SKILL.md, guard.mjs)
 3. If the repo has a `tools/` directory with sub-tools, it enters toolbox mode and installs each one
 4. For each tool, it deploys every detected interface:
 
-| Interface | What it does | Where it writes |
-|-----------|-------------|-----------------|
-| CLI | `npm install -g .` (falls back to `npm link`) | Global bin directory (`/opt/homebrew/bin/` or equivalent) |
-| Module | Confirms importable. No extra deployment needed | Already available via npm |
-| MCP Server | Registers via `claude mcp add --scope user`. Also adds to OpenClaw's `.mcp.json` if it exists | `~/.claude/` (user scope) and `~/.openclaw/.mcp.json` |
-| OpenClaw Plugin | Copies to `~/.ldm/extensions/<name>/` and `~/.openclaw/extensions/<name>/`. Runs `npm install --omit=dev`. **Removes existing directory first for a clean copy** | `~/.ldm/extensions/` and `~/.openclaw/extensions/` |
-| Skill | Copies SKILL.md to OpenClaw's skill directory so both CC and OpenClaw can use it | `~/.openclaw/skills/<tool>/SKILL.md` |
-| CC Hook | Adds a PreToolUse hook entry to Claude Code settings. Checks for duplicates first | `~/.claude/settings.json` |
+| Interface | How it's detected | Where it deploys |
+|-----------|------------------|-----------------|
+| CLI | `package.json` has `bin` entries | `npm install -g` |
+| Module | `package.json` has `main` or `exports` | Importable via `node_modules` |
+| MCP Server | Has `mcp-server.mjs` or `mcp-server.js` | `claude mcp add --scope user` |
+| OpenClaw Plugin | Has `openclaw.plugin.json` | `~/.ldm/extensions/` and `~/.openclaw/extensions/` |
+| Skill | Has `SKILL.md` | `~/.openclaw/skills/<tool>/SKILL.md` |
+| CC Hook | Has `guard.mjs` or `claudeCode.hook` in package.json | `~/.claude/settings.json` |
 
 5. Updates the extension registry at `~/.ldm/extensions/registry.json`
 
-**Safety:**
-- Always run `--dry-run` first on a system you don't fully control
-- The OpenClaw plugin deploy does `rm -rf` on the target extension directory before copying. Safe as long as the tool name doesn't collide with an existing plugin that isn't part of the toolbox
-- CC Hook installation checks for duplicates. Won't add the same hook twice
-- MCP registration removes and re-adds (update behavior). Existing MCP servers with different names are untouched
+**Standalone fallback:** If LDM OS is not installed, the `wip-install` CLI provides the same detection and deployment. It will attempt to install LDM OS automatically, then delegate. If that fails, it falls back to standalone mode.
 
 **Interfaces:** CLI, Module, Skill
 

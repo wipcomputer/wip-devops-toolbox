@@ -12,27 +12,21 @@ Used internally to manage 100+ repos, 200+ releases, and daily license complianc
 
 **Real-world example:** [wip-universal-installer](tools/wip-universal-installer/) ships its releases entirely through wip-release. 6 releases, v2.1.5, changelog and GitHub releases all generated automatically.
 
-## Quick Start (manual install)
+## Quick Start
 
 ```bash
-# Install the universal installer
-npm install -g @wipcomputer/universal-installer
+# Install LDM OS (shared infrastructure for all your AI tools)
+npm install -g @wipcomputer/wip-ldm-os
+ldm init
 
-# Preview what will be installed (9 tools, 30+ interfaces)
-wip-install wipcomputer/wip-ai-devops-toolbox --dry-run
+# Preview what will be installed (12 tools, 39+ interfaces)
+ldm install wipcomputer/wip-ai-devops-toolbox --dry-run
 
 # Install everything
-wip-install wipcomputer/wip-ai-devops-toolbox
+ldm install wipcomputer/wip-ai-devops-toolbox
 
-# Verify: run one check from each major category
-wip-license-guard check              # copyright compliance
-wip-repo-permissions audit wipcomputer  # visibility guard
-wip-repos check                      # manifest reconciliation
-```
-
-Or install individual tools:
-```bash
-npm install -g @wipcomputer/wip-release @wipcomputer/wip-license-hook @wipcomputer/universal-installer @wipcomputer/wip-repos
+# Verify
+ldm doctor
 ```
 
 ## Tools
