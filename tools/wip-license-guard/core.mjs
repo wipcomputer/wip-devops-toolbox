@@ -1,12 +1,81 @@
 // wip-license-guard/core.mjs
 // License generation and validation logic.
+// Reads templates from ai/wip-templates/readme/ when available.
+// Falls back to hardcoded defaults for standalone use.
 
-export function generateLicense(config) {
+import { existsSync, readFileSync } from 'node:fs';
+import { join, dirname } from 'node:path';
+
+// ── Template Resolution ─────────────────────────────────────────────
+
+/**
+ * Find the templates directory. Checks:
+ * 1. WIP_TEMPLATES_DIR env var
+ * 2. Walk up from repoPath looking for ai/wip-templates/readme/
+ * 3. Walk up from this file's location (for toolbox-internal use)
+ * Returns null if not found.
+ */
+function findTemplatesDir(repoPath) {
+  // 1. Env var
+  const envDir = process.env.WIP_TEMPLATES_DIR;
+  if (envDir && existsSync(join(envDir, 'LICENSE.md'))) return envDir;
+
+  // 2. Walk up from repoPath
+  if (repoPath) {
+    let dir = repoPath;
+    for (let i = 0; i < 10; i++) {
+      const candidate = join(dir, 'ai', 'wip-templates', 'readme');
+      if (existsSync(join(candidate, 'LICENSE.md'))) return candidate;
+      const parent = dirname(dir);
+      if (parent === dir) break;
+      dir = parent;
+    }
+  }
+
+  // 3. Walk up from this file (tools/wip-license-guard/ -> repo root)
+  const thisDir = dirname(new URL(import.meta.url).pathname);
+  let dir = thisDir;
+  for (let i = 0; i < 10; i++) {
+    const candidate = join(dir, 'ai', 'wip-templates', 'readme');
+    if (existsSync(join(candidate, 'LICENSE.md'))) return candidate;
+    const parent = dirname(dir);
+    if (parent === dir) break;
+    dir = parent;
+  }
+
+  return null;
+}
+
+/**
+ * Read a template file. Returns content or null.
+ */
+function readTemplate(templatesDir, filename) {
+  if (!templatesDir) return null;
+  const path = join(templatesDir, filename);
+  if (!existsSync(path)) return null;
+  return readFileSync(path, 'utf8');
+}
+
+/**
+ * Extract the markdown format section from wip-lic-footer.md.
+ * The file has two sections: // PLAIN TXT and // MD FORMAT.
+ * Returns the MD FORMAT section, or the whole file if no marker found.
+ */
+function extractMdFormat(content) {
+  const marker = '// MD FORMAT';
+  const idx = content.indexOf(marker);
+  if (idx === -1) return content;
+  return content.slice(idx + marker.length).trim();
+}
+
+// ── License Generation ──────────────────────────────────────────────
+
+export function generateLicense(config, repoPath) {
   const { copyright, license, year } = config;
 
   if (license === 'MIT') return generateMIT(copyright, year);
   if (license === 'AGPL-3.0') return generateAGPL(copyright, year);
-  if (license === 'MIT+AGPL') return generateDual(copyright, year);
+  if (license === 'MIT+AGPL') return generateDual(copyright, year, repoPath);
 
   return generateMIT(copyright, year);
 }
@@ -56,7 +125,16 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 `;
 }
 
-function generateDual(copyright, year) {
+function generateDual(copyright, year, repoPath) {
+  // Try template first
+  const templatesDir = findTemplatesDir(repoPath);
+  const template = readTemplate(templatesDir, 'LICENSE.md');
+  if (template) {
+    // Replace copyright year if template has a different one
+    return template.replace(/Copyright \(c\) \d{4}/, `Copyright (c) ${year}`);
+  }
+
+  // Hardcoded fallback
   return `Dual License: MIT + AGPLv3
 
 Copyright (c) ${year} ${copyright}
@@ -112,7 +190,40 @@ AGPLv3 for personal use is free. Commercial licenses available.
 `;
 }
 
-export function generateReadmeBlock(config) {
+// ── CLA Generation ──────────────────────────────────────────────────
+
+export function generateCLA(repoPath) {
+  // Try template first
+  const templatesDir = findTemplatesDir(repoPath);
+  const template = readTemplate(templatesDir, 'cla.md');
+  if (template) return template;
+
+  // Hardcoded fallback
+  return `###### WIP Computer
+
+# Contributor License Agreement
+
+By submitting a pull request to this repository, you agree to the following:
+
+1. **You grant WIP Computer, Inc. a perpetual, worldwide, non-exclusive, royalty-free, irrevocable license** to use, reproduce, modify, distribute, sublicense, and otherwise exploit your contribution under any license, including commercial licenses.
+
+2. **You retain copyright** to your contribution. This agreement does not transfer ownership. You can use your own code however you want.
+
+3. **You confirm** that your contribution is your original work, or that you have the right to submit it under these terms.
+
+4. **You understand** that your contribution may be used in both open source and commercial versions of this software.
+
+This is standard open source governance. Apache, Google, Meta, and Anthropic all use similar agreements. The goal is simple: keep the tools free for everyone while allowing WIP Computer, Inc. to offer commercial licenses to companies that need them.
+
+Using these tools to build your own software is always free. This agreement only matters if WIP Computer, Inc. needs to relicense the codebase commercially.
+
+If you have questions, open an issue or reach out.
+`;
+}
+
+// ── README License Block ────────────────────────────────────────────
+
+export function generateReadmeBlock(config, repoPath) {
   const { license, attribution } = config;
 
   if (license === 'MIT') {
@@ -129,6 +240,14 @@ AGPLv3. AGPLv3 for personal use is free.${attribution ? '\n\n' + attribution : '
 `;
   }
 
+  // MIT+AGPL: try template first
+  const templatesDir = findTemplatesDir(repoPath);
+  const footer = readTemplate(templatesDir, 'wip-lic-footer.md');
+  if (footer) {
+    return extractMdFormat(footer);
+  }
+
+  // Hardcoded fallback
   return `## License
 
 Dual-license model designed to keep tools free while preventing commercial resellers.
@@ -160,13 +279,15 @@ By submitting a PR, you agree to the [Contributor License Agreement](CLA.md).
 ${attribution ? '\n' + attribution : ''}`;
 }
 
+// ── README License Section Replace/Remove ───────────────────────────
+
 /**
  * Replace ## License section in readme content.
  * If no ## License exists, appends the block at the end.
  * Returns the updated content.
  */
-export function replaceReadmeLicenseSection(content, config) {
-  const block = generateReadmeBlock(config);
+export function replaceReadmeLicenseSection(content, config, repoPath) {
+  const block = generateReadmeBlock(config, repoPath);
 
   // Match from "## License" to the next ## heading or end of file
   const licenseRegex = /## License[\s\S]*?(?=\n## [^#]|\n---\s*$|$)/;
