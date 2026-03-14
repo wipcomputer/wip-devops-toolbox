@@ -32,6 +32,10 @@
 
 
 
+## 1.9.19 (2026-03-14)
+
+Add websiteRepo to .publish-skill.json. Auto-publish SKILL.md to website on release. Fix install prompt URLs to use wip- prefix.
+
 ## 1.9.18 (2026-03-14)
 
 Rewrite SKILL.md install flow to use ldm install. Conversational AI-guided pattern matching Memory Crystal.

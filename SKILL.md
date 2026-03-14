@@ -5,7 +5,7 @@ license: MIT
 interface: [cli, module, mcp, skill, hook, plugin]
 metadata:
   display-name: "WIP AI DevOps Toolbox"
-  version: "1.9.18"
+  version: "1.9.19"
   homepage: "https://github.com/wipcomputer/wip-ai-devops-toolbox"
   author: "Parker Todd Brooks"
   category: dev-tools
@@ -369,28 +369,30 @@ bash scripts/post-merge-rename.sh --dry-run    # preview without changes
 
 ### Skill Publish to Website
 
-After every release, your SKILL.md goes live as plain text on your website. No manual copying. No config file needed.
+After every release, your SKILL.md goes live as plain text on your website. No manual copying.
 
-**How it works:** Built into `wip-release`. If SKILL.md exists and `WIP_WEBSITE_REPO` env var is set, the release pipeline automatically copies SKILL.md to `{website}/wip.computer/install/{name}.txt` and runs `deploy.sh` to push it live.
+**How it works:** Built into `wip-release`. If SKILL.md exists and a website repo is configured, the release pipeline automatically copies SKILL.md to `{website}/wip.computer/install/{name}.txt` and runs `deploy.sh` to push it live.
+
+**Setup:** Add `.publish-skill.json` to your repo root:
+```json
+{
+  "name": "wip-ai-devops-toolbox",
+  "websiteRepo": "/path/to/your-website-repo"
+}
+```
+
+That's it. Every release auto-publishes. The convention is `yoursite.com/install/{name}.txt`. Plain text, no HTML. Any AI can `fetch()` the URL and get clean, parseable install instructions.
 
 **Name resolution (first match wins):**
-1. `.publish-skill.json` in repo root: `{ "name": "my-tool" }`
+1. `.publish-skill.json` `name` field
 2. `package.json` name (with `@scope/` prefix stripped)
 3. Directory name (with `-private` suffix stripped)
 
-**Setup:**
-```bash
-export WIP_WEBSITE_REPO="/path/to/your-website-repo"
-```
+**Website repo resolution:**
+1. `.publish-skill.json` `websiteRepo` field (per-repo config)
+2. `WIP_WEBSITE_REPO` env var (global fallback)
 
-That's it. Every repo with a SKILL.md auto-publishes on release. The convention is `yoursite.com/install/{name}.txt`. Plain text, no HTML. Any AI can `fetch()` the URL and get clean, parseable install instructions.
-
-**Override the name (optional):** Add `.publish-skill.json` to repo root:
-```json
-{ "name": "memory-crystal" }
-```
-
-**Non-blocking:** If the website repo is missing, deploy fails, or the env var isn't set, the release still succeeds. You'll see a warning in the output.
+**Non-blocking:** If the website repo is missing, deploy fails, or neither config nor env var is set, the release still succeeds. You'll see a warning in the output.
 
 **Interface:** Module (built into Release Pipeline)
 

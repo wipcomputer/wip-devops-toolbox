@@ -501,8 +501,17 @@ export function publishClawHub(repoPath, newVersion, notes) {
  * Non-blocking: returns result, never throws.
  */
 export function publishSkillToWebsite(repoPath) {
-  const websiteRepo = process.env.WIP_WEBSITE_REPO;
-  if (!websiteRepo) return { skipped: true, reason: 'WIP_WEBSITE_REPO not set' };
+  // Resolve website repo: .publish-skill.json > env var
+  let websiteRepo;
+  let targetName;
+  const configPath = join(repoPath, '.publish-skill.json');
+  let publishConfig = {};
+  if (existsSync(configPath)) {
+    try { publishConfig = JSON.parse(readFileSync(configPath, 'utf8')); } catch {}
+  }
+
+  websiteRepo = publishConfig.websiteRepo || process.env.WIP_WEBSITE_REPO;
+  if (!websiteRepo) return { skipped: true, reason: 'no websiteRepo in .publish-skill.json and WIP_WEBSITE_REPO not set' };
 
   // Find SKILL.md: check root, then skills/*/SKILL.md
   let skillFile = join(repoPath, 'SKILL.md');
@@ -520,16 +529,9 @@ export function publishSkillToWebsite(repoPath) {
   // Resolve target name: config > package.json > directory name
   // SKILL.md frontmatter name is skipped because it's a short slug
   // (e.g., "memory") not the full install name (e.g., "memory-crystal").
-  let targetName;
 
   // 1. Explicit config (optional, overrides auto-detect)
-  const configPath = join(repoPath, '.publish-skill.json');
-  if (existsSync(configPath)) {
-    try {
-      const config = JSON.parse(readFileSync(configPath, 'utf8'));
-      if (config.name) targetName = config.name;
-    } catch {}
-  }
+  if (publishConfig.name) targetName = publishConfig.name;
 
   // 2. package.json name (strip @scope/ prefix, most reliable)
   if (!targetName) {
