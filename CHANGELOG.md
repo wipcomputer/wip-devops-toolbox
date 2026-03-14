@@ -32,6 +32,10 @@
 
 
 
+## 1.9.20 (2026-03-14)
+
+Make root package publishable. npm install -g @wipcomputer/wip-ai-devops-toolbox now installs all 12 CLI tools.
+
 ## 1.9.19 (2026-03-14)
 
 Add websiteRepo to .publish-skill.json. Auto-publish SKILL.md to website on release. Fix install prompt URLs to use wip- prefix.
