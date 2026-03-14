@@ -32,6 +32,10 @@
 
 
 
+## 1.9.25 (2026-03-14)
+
+Fix branch guard matcher (catches Bash + NotebookEdit). Add Forced Git Worktrees and Branch Guard sections to SKILL.md. Update SPEC.md and TECHNICAL.md with all 17 tools and LDM OS links.
+
 ## 1.9.24 (2026-03-14)
 
 Number tools in dry run and already-installed lists. Dogfood iteration.

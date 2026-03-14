@@ -5,7 +5,7 @@ license: MIT
 interface: [cli, module, mcp, skill, hook, plugin]
 metadata:
   display-name: "WIP AI DevOps Toolbox"
-  version: "1.9.24"
+  version: "1.9.25"
   homepage: "https://github.com/wipcomputer/wip-ai-devops-toolbox"
   author: "Parker Todd Brooks"
   category: dev-tools
@@ -672,6 +672,42 @@ Edit any section independently before deploying. Same pattern as release notes: 
 **Where it writes:** README-init-*.md files in the repo root (staging). On deploy: README.md, TECHNICAL.md, and backups to `ai/_trash/`.
 
 **Interfaces:** CLI, Skill
+
+### Forced Git Worktrees
+
+Every repo uses git worktrees. Agents never edit on main. Period.
+
+When an agent needs to make changes, it creates a worktree (isolated copy of the repo on its own branch). All edits happen there. Main stays clean. Multiple agents can work on the same repo simultaneously without collisions. When the work is done, it goes through a PR to merge back.
+
+**How it works:**
+- Agent runs `EnterWorktree` (Claude Code) or `git worktree add` to get an isolated copy
+- All edits happen on the worktree branch
+- When done: commit, push, create PR, merge
+- Main is never touched directly
+
+**Interfaces:** CLI, CC Hook
+
+### Branch Guard
+
+Blocks all writes on main. The enforcement layer for forced worktrees.
+
+**How it works as a CC Hook:**
+- Runs as a PreToolUse hook in Claude Code
+- Intercepts `Write`, `Edit`, `NotebookEdit`, and destructive `Bash` commands
+- Resolves which repo the target file belongs to (from the file path, not CWD)
+- If that repo's current branch is main: **blocked**
+- Read-only operations (Read, Glob, Grep) are always allowed
+- Git operations that don't modify files (status, log, diff, branch, checkout, pull, merge, push) are allowed
+- `gh` commands (issues, PRs, releases) are allowed
+
+**Commands:**
+```
+wip-branch-guard --check       # report current branch status for all repos
+```
+
+**Where it writes:** Nothing. It only reads and blocks.
+
+**Interfaces:** CC Hook
 
 ---
 
