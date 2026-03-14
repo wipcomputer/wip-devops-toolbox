@@ -31,23 +31,24 @@ ldm doctor
 
 ## Tools
 
-### wip-universal-installer
+### Universal Installer (built into [LDM OS](https://github.com/wipcomputer/wip-ldm-os))
 
-The Universal Interface specification for agent-native software. Defines how every tool ships six interfaces: CLI, importable module, MCP Server, OpenClaw Plugin, Skill, Claude Code Hook. Includes a reference installer and a minimal example template.
+The Universal Interface specification for agent-native software. Defines how every tool ships six interfaces: CLI, importable module, MCP Server, OpenClaw Plugin, Skill, Claude Code Hook. The detection engine powers [`ldm install`](https://github.com/wipcomputer/wip-ldm-os).
 
 ```bash
 # Detect what interfaces a repo supports
-wip-install /path/to/repo --dry-run
+ldm install /path/to/repo --dry-run
 
 # Install a tool from GitHub
+ldm install wipcomputer/wip-file-guard
+
+# Standalone fallback (bootstraps LDM OS if needed)
 wip-install wipcomputer/wip-file-guard
 ```
 
-**Source:** Pure JavaScript, no build step. [`tools/wip-universal-installer/detect.mjs`](tools/wip-universal-installer/detect.mjs) (detection), [`tools/wip-universal-installer/install.js`](tools/wip-universal-installer/install.js) (installer). Zero dependencies.
+**Source:** Pure JavaScript, no build step. [`tools/wip-universal-installer/detect.mjs`](tools/wip-universal-installer/detect.mjs) (detection), [`tools/wip-universal-installer/install.js`](tools/wip-universal-installer/install.js) (standalone installer). Zero dependencies. LDM OS deploy engine at [`lib/deploy.mjs`](https://github.com/wipcomputer/wip-ldm-os/blob/main/lib/deploy.mjs).
 
-[README](tools/wip-universal-installer/README.md) ... [SKILL.md](tools/wip-universal-installer/SKILL.md) ... [SPEC.md](tools/wip-universal-installer/SPEC.md) ... [Reference](tools/wip-universal-installer/REFERENCE.md)
-
-Also available as `UNIVERSAL-INTERFACE.md` at the repo root.
+[README](tools/wip-universal-installer/README.md) ... [SKILL.md](tools/wip-universal-installer/SKILL.md) ... [Universal Interface Spec](tools/wip-universal-installer/SPEC.md) ... [Reference](tools/wip-universal-installer/REFERENCE.md)
 
 ### Dev Guide
 
@@ -211,6 +212,62 @@ wip-repos tree
 
 [README](tools/wip-repos/README.md)
 
+### wip-repo-init
+
+Scaffold the standard `ai/` directory in any repo. Plans, notes, ideas, dev updates, todos. One command.
+
+New repo: creates the full structure. Existing repo: moves old `ai/` contents to `ai/_sort/ai_old/` so you can sort at your own pace. Nothing is deleted.
+
+```bash
+wip-repo-init /path/to/repo              # scaffold ai/ in a repo
+wip-repo-init /path/to/repo --dry-run    # preview without changes
+```
+
+**Source:** Pure JavaScript, no build step. [`tools/wip-repo-init/init.mjs`](tools/wip-repo-init/init.mjs). Zero dependencies.
+
+[README](tools/wip-repo-init/README.md) ... [SKILL.md](tools/wip-repo-init/SKILL.md)
+
+### wip-readme-format
+
+Generate or validate READMEs that follow the WIP Computer standard. Badges, title, tagline, "Teach Your AI" block, features, interface coverage table, license.
+
+```bash
+wip-readme-format /path/to/repo              # generate section files
+wip-readme-format /path/to/repo --deploy     # assemble into final README
+wip-readme-format /path/to/repo --dry-run    # preview without writing
+```
+
+**Source:** Pure JavaScript, no build step. [`tools/wip-readme-format/format.mjs`](tools/wip-readme-format/format.mjs). Zero dependencies. Reads templates from `ai/wip-templates/readme/`.
+
+[README](tools/wip-readme-format/README.md) ... [SKILL.md](tools/wip-readme-format/SKILL.md)
+
+### wip-license-guard
+
+License enforcement for your own repos. Checks copyright, dual-license (MIT+AGPL), CLA, README license section. Toolbox-aware: checks every sub-tool. Interactive first-run setup. Auto-fix mode repairs issues.
+
+```bash
+wip-license-guard check                  # audit current repo
+wip-license-guard check --fix            # audit and auto-fix
+wip-license-guard init --from-standard   # apply WIP Computer defaults
+wip-license-guard readme-license         # audit/fix license blocks across all repos
+```
+
+**Source:** Pure JavaScript, no build step. [`tools/wip-license-guard/cli.mjs`](tools/wip-license-guard/cli.mjs) (CLI), [`tools/wip-license-guard/core.mjs`](tools/wip-license-guard/core.mjs) (logic). Zero dependencies.
+
+[README](tools/wip-license-guard/README.md) ... [SKILL.md](tools/wip-license-guard/SKILL.md)
+
+### wip-branch-guard
+
+Blocks all writes on main branch. The enforcement layer for forced worktrees. PreToolUse hook that catches Write, Edit, and destructive Bash commands. Resolves the repo from the file path, not the CWD, so it works when Claude Code opens in a different directory.
+
+```bash
+wip-branch-guard --check       # report current branch status
+```
+
+**Source:** Pure JavaScript, no build step. [`tools/wip-branch-guard/guard.mjs`](tools/wip-branch-guard/guard.mjs). Zero dependencies.
+
+[INSTALL.md](tools/wip-branch-guard/INSTALL.md)
+
 ## Source Code
 
 All implementation source is committed in this repo. No closed binaries, no mystery boxes.
@@ -263,20 +320,43 @@ node cli.js --dry-run patch --notes="test"
 Tell your AI:
 
 ```
-Read the SKILL.md at github.com/wipcomputer/wip-ai-devops-toolbox/blob/main/SKILL.md.
+Read wip.computer/install/wip-ai-devops-toolbox.txt
+
 Then explain what these tools do and help me set them up.
 ```
 
-Or install individually:
+Or install via LDM OS:
+
+```bash
+npm install -g @wipcomputer/wip-ldm-os
+ldm init
+ldm install wipcomputer/wip-ai-devops-toolbox --dry-run
+ldm install wipcomputer/wip-ai-devops-toolbox
+ldm doctor
+```
+
+Or install the root package directly:
+
+```bash
+npm install -g @wipcomputer/wip-ai-devops-toolbox
+```
+
+Or install individual tools:
 
 ```bash
 npm install -g @wipcomputer/wip-release
 npm install -g @wipcomputer/wip-license-hook
 npm install -g @wipcomputer/wip-file-guard
-npm install -g @wipcomputer/universal-installer
 npm install -g @wipcomputer/wip-repos
 ```
 
 ## License
 
-MIT. Built by Parker Todd Brooks, Lēsa (OpenClaw, Claude Opus 4.6), Claude Code CLI (Claude Opus 4.6).
+Dual-license model designed to keep tools free while preventing commercial resellers.
+
+```
+MIT      All CLI tools, MCP servers, skills, and hooks (use anywhere, no restrictions).
+AGPLv3   Commercial redistribution, marketplace listings, or bundling into paid services.
+```
+
+Built by Parker Todd Brooks, Lēsa (OpenClaw, Claude Opus 4.6), Claude Code (Claude Opus 4.6).

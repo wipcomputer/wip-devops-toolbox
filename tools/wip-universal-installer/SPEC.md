@@ -161,20 +161,46 @@ The `ai/` folder is the development process. It is not part of the published pro
 
 ## The Reference Installer
 
-`wip-install` is the reference implementation. It scans a repo, detects which interfaces exist, and installs them all. One command.
+`ldm install` is the primary installer (part of LDM OS). `wip-install` is the standalone fallback. Both scan a repo, detect which interfaces exist, and install them all. One command.
 
 ```bash
-wip-install /path/to/repo          # local
-wip-install org/repo               # from GitHub
-wip-install --dry-run /path/to/repo # detect only
+ldm install /path/to/repo           # local (via LDM OS)
+ldm install org/repo                # from GitHub
+ldm install org/repo --dry-run      # detect only
+wip-install /path/to/repo           # standalone fallback (bootstraps LDM OS if needed)
 wip-install --json /path/to/repo    # JSON output
 ```
 
+For toolbox repos (with a `tools/` directory containing sub-tools), the installer enters toolbox mode and installs each sub-tool.
+
 ## Examples
 
-| Repo | Interfaces | Type |
-|------|------------|------|
-| [wip-grok](https://github.com/wipcomputer/wip-grok) | CLI + Module + MCP + Skill | Sensor + Actuator |
-| [wip-x](https://github.com/wipcomputer/wip-x) | CLI + Module + MCP + Skill | Sensor + Actuator |
-| [wip-file-guard](https://github.com/wipcomputer/wip-file-guard) | CLI + OpenClaw + CC Hook | Actuator |
-| [wip-markdown-viewer](https://github.com/wipcomputer/wip-markdown-viewer) | CLI + Module | Actuator |
+### AI DevOps Toolbox (this repo)
+
+| # | Tool | Interfaces |
+|---|------|------------|
+| | **Repo Management** | |
+| 1 | [Repo Visibility Guard](tools/wip-repo-permissions-hook/) | CLI + Module + MCP + OpenClaw + Skill + CC Hook |
+| 2 | [Repo Manifest Reconciler](tools/wip-repos/) | CLI + Module + MCP + Skill |
+| 3 | [Repo Init](tools/wip-repo-init/) | CLI + Skill |
+| 4 | [README Formatter](tools/wip-readme-format/) | CLI + Skill |
+| 5 | [Branch Guard](tools/wip-branch-guard/) | CLI + Module + CC Hook |
+| | **License, Compliance, and Protection** | |
+| 6 | [Identity File Protection](tools/wip-file-guard/) | CLI + Module + OpenClaw + Skill + CC Hook |
+| 7 | [License Guard](tools/wip-license-guard/) | CLI + Skill |
+| 8 | [License Rug-Pull Detection](tools/wip-license-hook/) | CLI + Module + MCP + Skill |
+| | **Release & Deploy** | |
+| 9 | [Release Pipeline](tools/wip-release/) | CLI + Module + MCP + Skill |
+| 10 | [Private-to-Public Sync](tools/deploy-public/) | CLI + Skill |
+| 11 | [Post-Merge Branch Naming](tools/post-merge-rename/) | CLI + Skill |
+| 12 | [Universal Installer](tools/wip-universal-installer/) | CLI + Module + Skill |
+
+### Other WIP Computer Tools
+
+| Repo | Interfaces |
+|------|------------|
+| [Memory Crystal](https://github.com/wipcomputer/memory-crystal) | CLI + Module + MCP + OpenClaw + Skill |
+| [LDM OS](https://github.com/wipcomputer/wip-ldm-os) | CLI + Module + Skill + CC Hook |
+| [wip-grok](https://github.com/wipcomputer/wip-grok) | CLI + Module + MCP + Skill |
+| [wip-x](https://github.com/wipcomputer/wip-x) | CLI + Module + MCP + Skill |
+| [Markdown Viewer](https://github.com/wipcomputer/wip-markdown-viewer) | CLI + Module |
