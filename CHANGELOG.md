@@ -32,6 +32,14 @@
 
 
 
+## 1.9.24 (2026-03-14)
+
+Number tools in dry run and already-installed lists. Dogfood iteration.
+
+## 1.9.23 (2026-03-14)
+
+Force verbatim tool list display. AI must show all 17 tools with descriptions, never summarize.
+
 ## 1.9.22 (2026-03-14)
 
 All 17 tools listed with descriptions. New section order: Setup, Infrastructure, Repo Management, License, Release. Conversational prompt.

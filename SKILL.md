@@ -5,7 +5,7 @@ license: MIT
 interface: [cli, module, mcp, skill, hook, plugin]
 metadata:
   display-name: "WIP AI DevOps Toolbox"
-  version: "1.9.22"
+  version: "1.9.24"
   homepage: "https://github.com/wipcomputer/wip-ai-devops-toolbox"
   author: "Parker Todd Brooks"
   category: dev-tools
@@ -76,7 +76,9 @@ The tools in this toolbox use different capabilities. Check what you have and te
 
 ### Already installed? Show what they have.
 
-If the user already has the toolbox installed (check `ldm status` or look for `wip-release` on PATH), show them what they have. List every tool with its description and version. Use the categories below. If an update is available, tell the user and offer to update via `ldm install wipcomputer/wip-ai-devops-toolbox`.
+If the user already has the toolbox installed (check `ldm status` or look for `wip-release` on PATH), you MUST show the complete list below. Do NOT summarize. Do NOT skip tools. Do NOT paraphrase. Show every single tool with its number, name, category, and description exactly as written here. Show the installed version next to each tool name.
+
+**IMPORTANT: Copy this list verbatim. All 17 tools. All 5 categories. Every description. The user needs to see every tool to understand what they have.**
 
 **Setup & Onboarding**
 1. **Universal Installer** ... one command detects and deploys all interfaces (CLI, MCP, Plugin, Skill, Hook). Powers `ldm install`.
@@ -105,7 +107,9 @@ If the user already has the toolbox installed (check `ldm status` or look for `w
 16. **Skill Publish to Website** ... auto-publishes SKILL.md as plain text on release. Like robots.txt for agents.
 17. **Make Discoverable in Claude Code** ... auto-generates plugin manifest for Claude Code marketplace. (Planned)
 
-After listing, say: "You can ask me about any of these tools and I'll explain more about what it does and how to use it."
+If an update is available, tell the user and offer to update via `ldm install wipcomputer/wip-ai-devops-toolbox`.
+
+After the list, say: "You can ask me about any of these tools and I'll explain more about what it does and how to use it."
 
 ### Step 0: Check for LDM OS
 
@@ -154,25 +158,25 @@ Always dry-run first:
 ldm install wipcomputer/wip-ai-devops-toolbox --dry-run
 ```
 
-Show the user the output. It lists every sub-tool and every interface that will be deployed. Walk through what each tool does, grouped by category:
+Show the user the output. It lists every sub-tool and every interface that will be deployed. Number every tool in your summary. Walk through what each tool does, grouped by category:
 
 **Repo Management**
-- **Repo Visibility Guard** ... blocks repos from going public without a -private counterpart
-- **Repo Manifest Reconciler** ... one source of truth for folder structure
-- **Repo Init** ... scaffolds the standard ai/ directory in any repo
-- **README Formatter** ... generates READMEs following the standard format
-- **Branch Guard** ... blocks all writes on main (forces worktrees)
+1. **Repo Visibility Guard** ... blocks repos from going public without a -private counterpart
+2. **Repo Manifest Reconciler** ... one source of truth for folder structure
+3. **Repo Init** ... scaffolds the standard ai/ directory in any repo
+4. **README Formatter** ... generates READMEs following the standard format
+5. **Branch Guard** ... blocks all writes on main (forces worktrees)
 
 **License, Compliance, and Protection**
-- **Identity File Protection** ... blocks overwrites of CLAUDE.md, SOUL.md, MEMORY.md
-- **License Guard** ... enforces copyright, dual-license, CLA on your repos
-- **License Rug-Pull Detection** ... catches license changes in dependencies
+6. **Identity File Protection** ... blocks overwrites of CLAUDE.md, SOUL.md, MEMORY.md
+7. **License Guard** ... enforces copyright, dual-license, CLA on your repos
+8. **License Rug-Pull Detection** ... catches license changes in dependencies
 
 **Release & Deploy**
-- **Release Pipeline** ... version bump, changelog, npm publish, GitHub release
-- **Private-to-Public Sync** ... syncs private to public, excludes ai/ automatically
-- **Post-Merge Branch Naming** ... renames merged branches with dates
-- **Universal Installer** ... detects and deploys tool interfaces
+9. **Release Pipeline** ... version bump, changelog, npm publish, GitHub release
+10. **Private-to-Public Sync** ... syncs private to public, excludes ai/ automatically
+11. **Post-Merge Branch Naming** ... renames merged branches with dates
+12. **Universal Installer** ... detects and deploys tool interfaces
 
 Ask: "You can ask me about any of these tools and I'll explain more. Want to proceed with the install?"
 
