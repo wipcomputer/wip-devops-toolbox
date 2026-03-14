@@ -15,7 +15,7 @@ AI DevOps Toolbox is the complete toolkit. Built by a team of humans and AIs shi
 Open your AI and paste this:
 
 ```
-Read wip.computer/install/ai-devops-toolbox.txt
+Read wip.computer/install/wip-ai-devops-toolbox.txt
 
 Then explain:
 1. What is AI DevOps Toolbox?
@@ -91,7 +91,7 @@ As Andrej Karpathy [said](https://x.com/karpathy/status/2024583544157458452): *"
 
 **Skill Publish to Website**
 - After every release, your SKILL.md goes live as plain text on your website. No manual copying. No forgetting.
-- Auto-detects any repo with a SKILL.md. Copies it to `yoursite.com/install/{name}.txt` and deploys automatically. No config file needed. Any AI can fetch the URL and get clean, parseable instructions. Like `robots.txt` but for agent install prompts.
+- Add `.publish-skill.json` to your repo with `name` and `websiteRepo`. On release, SKILL.md is copied to `yoursite.com/install/{name}.txt` and deployed automatically. Any AI can fetch the URL and get clean, parseable instructions. Like `robots.txt` but for agent install prompts.
 - **Interfaces:** Module (built into Release Pipeline)
 - *Stable*
 

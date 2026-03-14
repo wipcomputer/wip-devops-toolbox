@@ -86,19 +86,24 @@ Checks:
 
 After publishing, wip-release auto-copies SKILL.md to your website as plain text. Any AI can fetch the URL and get clean install instructions.
 
-**Setup:** Set the `WIP_WEBSITE_REPO` environment variable to your website repo path. That's it.
+**Setup:** Add `.publish-skill.json` to your repo root:
+```json
+{ "name": "wip-my-tool", "websiteRepo": "/path/to/website-repo" }
+```
 
 **How it works:**
-1. If SKILL.md exists and `WIP_WEBSITE_REPO` is set, copies SKILL.md to `{website}/wip.computer/install/{name}.txt`
+1. If SKILL.md exists and a website repo is configured, copies SKILL.md to `{website}/wip.computer/install/{name}.txt`
 2. Runs `deploy.sh` in the website repo to push live
 3. Non-blocking: if deploy fails, the release still succeeds
 
+**Website repo resolution:**
+1. `.publish-skill.json` `websiteRepo` field (per-repo)
+2. `WIP_WEBSITE_REPO` env var (global fallback)
+
 **Name resolution (first match wins):**
-1. `.publish-skill.json` in repo root: `{ "name": "my-tool" }`
+1. `.publish-skill.json` `name` field
 2. `package.json` name (with `@scope/` prefix stripped)
 3. Directory name (with `-private` suffix stripped)
-
-No config file needed. Every repo with a SKILL.md auto-publishes on release.
 
 ### Module
 
