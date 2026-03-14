@@ -6,7 +6,7 @@
 import { existsSync, readFileSync, writeFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { createInterface } from 'node:readline';
-import { generateLicense, generateReadmeBlock, replaceReadmeLicenseSection, removeReadmeLicenseSection } from './core.mjs';
+import { generateLicense, generateCLA, generateReadmeBlock, replaceReadmeLicenseSection, removeReadmeLicenseSection } from './core.mjs';
 
 const args = process.argv.slice(2);
 const HELP_FLAGS = ['--help', '-h', 'help'];
@@ -39,29 +39,6 @@ const WIP_STANDARD = {
   attribution: 'Built by Parker Todd Brooks, Lēsa (OpenClaw, Claude Opus 4.6), Claude Code (Claude Opus 4.6).',
 };
 
-function generateCLA() {
-  return `###### WIP Computer
-
-# Contributor License Agreement
-
-By submitting a pull request to this repository, you agree to the following:
-
-1. **You grant WIP Computer, Inc. a perpetual, worldwide, non-exclusive, royalty-free, irrevocable license** to use, reproduce, modify, distribute, sublicense, and otherwise exploit your contribution under any license, including commercial licenses.
-
-2. **You retain copyright** to your contribution. This agreement does not transfer ownership. You can use your own code however you want.
-
-3. **You confirm** that your contribution is your original work, or that you have the right to submit it under these terms.
-
-4. **You understand** that your contribution may be used in both open source and commercial versions of this software.
-
-This is standard open source governance. Apache, Google, Meta, and Anthropic all use similar agreements. The goal is simple: keep the tools free for everyone while allowing WIP Computer, Inc. to offer commercial licenses to companies that need them.
-
-Using these tools to build your own software is always free. This agreement only matters if WIP Computer, Inc. needs to relicense the codebase commercially.
-
-If you have questions, open an issue or reach out.
-`;
-}
-
 async function init(repoPath) {
   const configPath = join(repoPath, '.license-guard.json');
 
@@ -75,12 +52,12 @@ async function init(repoPath) {
     ok(`Config saved to .license-guard.json`);
 
     const licensePath = join(repoPath, 'LICENSE');
-    writeFileSync(licensePath, generateLicense(config));
+    writeFileSync(licensePath, generateLicense(config, repoPath));
     ok(`LICENSE file generated (dual MIT+AGPLv3)`);
 
     const claPath = join(repoPath, 'CLA.md');
     if (!existsSync(claPath)) {
-      writeFileSync(claPath, generateCLA());
+      writeFileSync(claPath, generateCLA(repoPath));
       ok(`CLA.md generated`);
     } else {
       ok(`CLA.md already exists`);
@@ -133,14 +110,14 @@ async function init(repoPath) {
   ok(`Config saved to .license-guard.json`);
 
   const licensePath = join(repoPath, 'LICENSE');
-  const licenseText = generateLicense(config);
+  const licenseText = generateLicense(config, repoPath);
   writeFileSync(licensePath, licenseText);
   ok(`LICENSE file generated`);
 
   // Generate CLA.md if it doesn't exist
   const claPath = join(repoPath, 'CLA.md');
   if (!existsSync(claPath)) {
-    writeFileSync(claPath, generateCLA());
+    writeFileSync(claPath, generateCLA(repoPath));
     ok(`CLA.md generated`);
   }
 
@@ -174,7 +151,7 @@ async function check(repoPath) {
     warn('LICENSE file missing');
     issues++;
     if (FIX) {
-      writeFileSync(licensePath, generateLicense(config));
+      writeFileSync(licensePath, generateLicense(config, repoPath));
       ok('LICENSE file created (--fix)');
       issues--;
     }
@@ -185,7 +162,7 @@ async function check(repoPath) {
       warn(`LICENSE copyright does not match "${config.copyright}"`);
       issues++;
       if (FIX) {
-        writeFileSync(licensePath, generateLicense(config));
+        writeFileSync(licensePath, generateLicense(config, repoPath));
         ok('LICENSE file updated (--fix)');
         issues--;
       }
@@ -198,7 +175,7 @@ async function check(repoPath) {
         warn('LICENSE file is MIT-only but config says MIT+AGPL');
         issues++;
         if (FIX) {
-          writeFileSync(licensePath, generateLicense(config));
+          writeFileSync(licensePath, generateLicense(config, repoPath));
           ok('LICENSE file updated to dual-license (--fix)');
           issues--;
         }
@@ -214,7 +191,7 @@ async function check(repoPath) {
     warn('CLA.md missing');
     issues++;
     if (FIX) {
-      writeFileSync(claPath, generateCLA());
+      writeFileSync(claPath, generateCLA(repoPath));
       ok('CLA.md created (--fix)');
       issues--;
     }
@@ -289,7 +266,7 @@ async function check(repoPath) {
           warn(`tools/${entry.name}/LICENSE missing`);
           issues++;
           if (FIX) {
-            writeFileSync(toolLicense, generateLicense(config));
+            writeFileSync(toolLicense, generateLicense(config, repoPath));
             ok(`tools/${entry.name}/LICENSE created (--fix)`);
             issues--;
           }
@@ -299,7 +276,7 @@ async function check(repoPath) {
             warn(`tools/${entry.name}/LICENSE wrong copyright`);
             issues++;
             if (FIX) {
-              writeFileSync(toolLicense, generateLicense(config));
+              writeFileSync(toolLicense, generateLicense(config, repoPath));
               ok(`tools/${entry.name}/LICENSE updated (--fix)`);
               issues--;
             }
@@ -387,7 +364,7 @@ async function readmeLicense(targetPath) {
           log(`    would replace with: standard dual MIT/AGPLv3 block`);
         }
         if (FIX) {
-          const updated = replaceReadmeLicenseSection(content, config);
+          const updated = replaceReadmeLicenseSection(content, config, repoPath);
           writeFileSync(readmePath, updated);
           ok(`${repoName}/README.md ... updated to standard (--fix)`);
           totalIssues--;
@@ -399,7 +376,7 @@ async function readmeLicense(targetPath) {
           log(`    would add: standard dual MIT/AGPLv3 block at end of README`);
         }
         if (FIX) {
-          const updated = replaceReadmeLicenseSection(content, config);
+          const updated = replaceReadmeLicenseSection(content, config, repoPath);
           writeFileSync(readmePath, updated);
           ok(`${repoName}/README.md ... added standard block (--fix)`);
           totalIssues--;
