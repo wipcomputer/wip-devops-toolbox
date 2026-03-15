@@ -32,6 +32,10 @@
 
 
 
+## 1.9.26 (2026-03-15)
+
+Add restart notice after install/update. Hooks need session restart to take effect.
+
 ## 1.9.25 (2026-03-14)
 
 Fix branch guard matcher (catches Bash + NotebookEdit). Add Forced Git Worktrees and Branch Guard sections to SKILL.md. Update SPEC.md and TECHNICAL.md with all 17 tools and LDM OS links.
