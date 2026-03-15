@@ -5,7 +5,7 @@ license: MIT
 interface: [cli, module, mcp, skill, hook, plugin]
 metadata:
   display-name: "WIP AI DevOps Toolbox"
-  version: "1.9.25"
+  version: "1.9.26"
   homepage: "https://github.com/wipcomputer/wip-ai-devops-toolbox"
   author: "Parker Todd Brooks"
   category: dev-tools
@@ -204,6 +204,10 @@ wip-release --version
 
 Tell the user: "AI DevOps Toolbox is installed. Your AI now knows how to release software, check license compliance, protect identity files, guard repo visibility, and manage repo manifests. These tools run automatically ... you don't need to invoke them manually."
 
+**Important: tell the user they need to restart their AI agents for hooks to take effect.** Claude Code hooks are loaded when a session starts. Any running session still has the old hooks. Tell them:
+
+> "The install updated your Claude Code hooks (branch guard, file guard, repo permissions). Any AI session that was already running needs to be restarted to pick up the new hooks. Exit and reopen each Claude Code session. New sessions will work automatically."
+
 ### Update
 
 If AI DevOps Toolbox is already installed and a new version is available:
@@ -212,6 +216,8 @@ If AI DevOps Toolbox is already installed and a new version is available:
 ldm install wipcomputer/wip-ai-devops-toolbox
 ldm doctor
 ```
+
+After updating, remind the user to restart running AI sessions so they pick up any new or changed hooks.
 
 Updates deploy new code without touching data or configuration.
 
