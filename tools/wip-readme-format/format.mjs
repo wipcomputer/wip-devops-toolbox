@@ -337,6 +337,26 @@ if (DEPLOY) {
     process.exit(1);
   }
 
+  // Safety: init files must be reviewed (committed or modified) before deploy.
+  // If all init files are untracked (just generated, never reviewed), block.
+  try {
+    const { execSync } = await import('node:child_process');
+    const initFiles = readdirSync(repoPath).filter(f => f.startsWith('README-init-'));
+    const allUntracked = initFiles.every(f => {
+      try {
+        const status = execSync(`git status --porcelain "${f}"`, { cwd: repoPath, encoding: 'utf8' }).trim();
+        return status.startsWith('??');
+      } catch { return false; }
+    });
+    if (allUntracked && initFiles.length > 0) {
+      fail('Init files have not been reviewed. They are all untracked (just generated).');
+      console.log('  Review the README-init-*.md files, edit as needed, then git add them before deploying.');
+      console.log('  Or commit them first so there is a review trail.');
+      process.exit(1);
+    }
+  } catch {}
+
+
   const date = new Date().toISOString().slice(0, 10);
   const aiTrash = join(repoPath, 'ai', '_trash');
 

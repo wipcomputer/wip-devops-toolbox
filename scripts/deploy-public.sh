@@ -18,12 +18,29 @@
 
 set -euo pipefail
 
-PRIVATE_REPO="$1"
-PUBLIC_REPO="$2"
+PRIVATE_REPO="${1:-}"
+PUBLIC_REPO="${2:-}"
+DRY_RUN=false
+
+# Parse flags
+for arg in "$@"; do
+  case "$arg" in
+    --dry-run) DRY_RUN=true ;;
+  esac
+done
+
+# Strip flags from positional args
+ARGS=()
+for arg in "$@"; do
+  [[ "$arg" == --* ]] || ARGS+=("$arg")
+done
+PRIVATE_REPO="${ARGS[0]:-}"
+PUBLIC_REPO="${ARGS[1]:-}"
 
 if [[ -z "$PRIVATE_REPO" || -z "$PUBLIC_REPO" ]]; then
-  echo "Usage: bash deploy-public.sh <private-repo-path> <public-github-repo>"
+  echo "Usage: bash deploy-public.sh <private-repo-path> <public-github-repo> [--dry-run]"
   echo "Example: bash deploy-public.sh /path/to/memory-crystal wipcomputer/memory-crystal"
+  echo "         bash deploy-public.sh /path/to/memory-crystal wipcomputer/memory-crystal --dry-run"
   exit 1
 fi
 
@@ -123,6 +140,24 @@ fi
 BRANCH="$HARNESS_ID/deploy-$(date +%Y%m%d-%H%M%S)"
 
 git add -A
+
+# Dry-run: show what would be deployed, then stop
+if $DRY_RUN; then
+  echo ""
+  echo "  Dry run: deploy-public.sh"
+  echo "  ────────────────────────────────────"
+  echo "  Source: $PRIVATE_REPO"
+  echo "  Target: $PUBLIC_REPO"
+  echo "  Commit: $COMMIT_MSG ($COMMIT_HASH)"
+  echo ""
+  echo "  Files that would change:"
+  git diff --cached --stat 2>/dev/null || git diff --stat HEAD 2>/dev/null || echo "  (new files)"
+  git ls-files --others --exclude-standard | head -20 | while read f; do echo "  + $f"; done
+  echo ""
+  echo "  Dry run complete. No changes pushed."
+  exit 0
+fi
+
 git commit -m "$COMMIT_MSG (from $COMMIT_HASH)"
 
 if [[ "$EMPTY_REPO" == "true" ]]; then

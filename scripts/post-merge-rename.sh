@@ -159,6 +159,11 @@ prune_branches() {
       if [[ $count -le $KEEP_COUNT ]]; then
         echo "  ✓ KEEP $branch"
       else
+        # Safety: verify branch is actually merged into main before deleting
+        if ! git merge-base --is-ancestor "origin/$branch" origin/main 2>/dev/null; then
+          echo "  ! SKIP $branch (NOT merged into main despite --merged suffix)"
+          continue
+        fi
         if $DRY_RUN; then
           echo "  [dry-run] DELETE $branch"
         else

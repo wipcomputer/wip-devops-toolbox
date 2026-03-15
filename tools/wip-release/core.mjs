@@ -253,6 +253,44 @@ function checkReleaseNotes(notes, notesSource, level) {
 }
 
 /**
+ * Scaffold a RELEASE-NOTES-v{version}.md template if one doesn't exist.
+ * Called when the release notes gate blocks. Gives the agent a file to fill in.
+ */
+export function scaffoldReleaseNotes(repoPath, version) {
+  const dashed = version.replace(/\./g, '-');
+  const notesPath = join(repoPath, `RELEASE-NOTES-v${dashed}.md`);
+  if (existsSync(notesPath)) return notesPath;
+
+  const pkg = JSON.parse(readFileSync(join(repoPath, 'package.json'), 'utf8'));
+  const name = pkg.name?.replace(/^@[^/]+\//, '') || basename(repoPath);
+
+  const template = `# Release Notes: ${name} v${version}
+
+**One-line summary of what this release does**
+
+## What changed
+
+Describe the changes. Not a commit list. Explain:
+- What was built or fixed
+- Why it matters
+- What the user should know
+
+## Why
+
+What problem does this solve? What was broken or missing?
+
+## How to verify
+
+\`\`\`bash
+# Commands to test the changes
+\`\`\`
+`;
+
+  writeFileSync(notesPath, template);
+  return notesPath;
+}
+
+/**
  * Check if a file was modified in commits since the last git tag.
  */
 function fileModifiedSinceLastTag(repoPath, relativePath) {
@@ -783,11 +821,10 @@ export async function release({ repoPath, level, notes, notesSource, dryRun, noP
       console.log(`  ✗ Release notes blocked:`);
       for (const issue of notesCheck.issues) console.log(`    - ${issue}`);
       console.log('');
-      console.log('  Release notes must explain what changed and why.');
-      console.log('  Options:');
-      console.log('    1. Write RELEASE-NOTES-v{version}.md (dashes not dots) and commit it');
-      console.log('    2. Write ai/dev-updates/YYYY-MM-DD--description.md and commit it');
-      console.log('    3. Use --notes="at least 50 chars explaining the change and its impact"');
+      // Scaffold a template so the agent has something to fill in
+      const templatePath = scaffoldReleaseNotes(repoPath, newVersion);
+      console.log(`  Scaffolded template: ${basename(templatePath)}`);
+      console.log('  Fill it in, commit, then run wip-release again.');
       console.log('');
       return { currentVersion, newVersion, dryRun: false, failed: true };
     }
