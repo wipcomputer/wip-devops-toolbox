@@ -15,7 +15,7 @@ import { fileURLToPath } from 'node:url';
 import { createInterface } from 'node:readline';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const TEMPLATE = join(__dirname, 'ai');
+const TEMPLATE = join(__dirname, 'templates');
 
 const targetRepo = resolve(process.argv[2] || process.cwd());
 const aiDir = join(targetRepo, 'ai');

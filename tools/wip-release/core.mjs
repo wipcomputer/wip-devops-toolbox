@@ -225,32 +225,31 @@ function categorizeCommit(subject) {
  */
 function checkReleaseNotes(notes, notesSource, level) {
   const issues = [];
-  const isMinorOrMajor = level === 'minor' || level === 'major';
 
   if (!notes) {
-    issues.push('No release notes provided. Write a RELEASE-NOTES-v{version}.md file.');
-    return { ok: false, issues };
+    issues.push('No release notes provided. Write a RELEASE-NOTES-v{version}.md or ai/dev-updates/ file.');
+    return { ok: false, issues, block: true };
   }
 
-  // Bare --notes flag is not acceptable for minor/major.
-  // Agents must write a file, not pass a one-liner.
-  if (notesSource === 'flag') {
-    if (isMinorOrMajor) {
-      issues.push('Release notes came from --notes flag, not a file.');
-      issues.push('Write RELEASE-NOTES-v{version}.md (dashes not dots) and commit it.');
-      issues.push('wip-release auto-detects the file. No --notes flag needed.');
-    } else if (notes.length < 50) {
-      issues.push('Release notes are very short. Consider writing a RELEASE-NOTES file.');
-    }
+  // Notes too short. All levels blocked.
+  if (notes.length < 50) {
+    issues.push('Release notes are too short (under 50 chars). Explain what changed and why.');
+    issues.push('Write a RELEASE-NOTES-v{version}.md or ai/dev-updates/ file.');
+  }
+
+  // Bare --notes flag for minor/major is never acceptable.
+  if (notesSource === 'flag' && (level === 'minor' || level === 'major')) {
+    issues.push('Minor/major releases require a file, not --notes flag.');
+    issues.push('Write RELEASE-NOTES-v{version}.md (dashes not dots) and commit it.');
   }
 
   // Check for changelog-style one-liners regardless of source
   const looksLikeChangelog = /^(fix|add|update|remove|bump|chore|refactor|docs?)[\s:]/i.test(notes);
   if (looksLikeChangelog && notes.length < 100) {
-    issues.push('Notes look like a changelog entry, not a narrative.');
+    issues.push('Notes look like a changelog entry, not a narrative. Explain the impact.');
   }
 
-  return { ok: issues.length === 0, issues };
+  return { ok: issues.length === 0, issues, block: issues.length > 0 };
 }
 
 /**
@@ -781,17 +780,16 @@ export async function release({ repoPath, level, notes, notesSource, dryRun, noP
       const sourceLabel = notesSource === 'file' ? 'from file' : notesSource === 'dev-update' ? 'from dev update' : 'from --notes';
       console.log(`  ✓ Release notes OK (${sourceLabel})`);
     } else {
-      const isMinorOrMajor = level === 'minor' || level === 'major';
-      const prefix = isMinorOrMajor ? '✗' : '!';
-      console.log(`  ${prefix} Release notes need attention:`);
+      console.log(`  ✗ Release notes blocked:`);
       for (const issue of notesCheck.issues) console.log(`    - ${issue}`);
-      if (isMinorOrMajor) {
-        console.log('');
-        console.log('  Minor/major releases require a RELEASE-NOTES file, not a --notes one-liner.');
-        console.log('  Write RELEASE-NOTES-v{version}.md (dashes not dots), commit it, then release.');
-        console.log('');
-        return { currentVersion, newVersion, dryRun: false, failed: true };
-      }
+      console.log('');
+      console.log('  Release notes must explain what changed and why.');
+      console.log('  Options:');
+      console.log('    1. Write RELEASE-NOTES-v{version}.md (dashes not dots) and commit it');
+      console.log('    2. Write ai/dev-updates/YYYY-MM-DD--description.md and commit it');
+      console.log('    3. Use --notes="at least 50 chars explaining the change and its impact"');
+      console.log('');
+      return { currentVersion, newVersion, dryRun: false, failed: true };
     }
   }
 
